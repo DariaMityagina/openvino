@@ -42,10 +42,10 @@ protected:
     }
 
     void serializeParamsImpl(BlobSerializer& serializer) const override {
-        serializer.append(attrs().get<uint32_t>("iterations-count"));
-        serializer.append(attrs().get<uint32_t>("stages-count"));
+        serializer.append(attrs().get<uint32_t>(s_IterationsCountAttribute));
+        serializer.append(attrs().get<uint32_t>(s_StagesCountAttribute));
 
-        const auto& startCopies = attrs().getOrDefault<IterationComponents>("start-iteration-components", {});
+        const auto& startCopies = attrs().getOrDefault<IterationComponents>(s_IterationComponentsAttribute, {});
         serializer.append(checked_cast<uint32_t>(startCopies.size()));
         for (const auto& component : startCopies) {
             const auto& rule = component.first.second;
@@ -60,7 +60,7 @@ protected:
     }
 
     void serializeDataImpl(BlobSerializer& serializer) const override {
-        const auto& startCopies = attrs().getOrDefault<IterationComponents>("start-iteration-components", {});
+        const auto& startCopies = attrs().getOrDefault<IterationComponents>(s_IterationComponentsAttribute, {});
         for (const auto& iteration : startCopies) {
             input(iteration.first.first)->serializeBuffer(serializer);
             output(iteration.second)->serializeBuffer(serializer);

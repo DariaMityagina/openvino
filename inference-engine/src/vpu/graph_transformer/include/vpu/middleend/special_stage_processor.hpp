@@ -38,8 +38,8 @@ public:
             const Model& model,
             const Stage& stage);
 
-    void processLoopStart(const Model& model, const Stage& stage);
-    void processLoopEnd(const Model& model, const Stage& stage);
+    void processLoopStart(const Model& model, const Stage& loopStart);
+    void processLoopEnd(const Model& model, const Stage& loopEnd);
 
 private:
     StageBuilder::Ptr _stageBuilder;

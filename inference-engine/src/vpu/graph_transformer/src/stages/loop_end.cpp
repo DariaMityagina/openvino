@@ -24,20 +24,19 @@ protected:
     }
 
     void propagateDataOrderImpl(StageDataInfo<DimsOrder>& orderInfo) override {
-        const auto& endCopies = attrs().getOrDefault<IterationComponents>("end-iteration-components", {});
+        const auto& endCopies = attrs().getOrDefault<IterationComponents>(s_IterationComponentsAttribute, {});
         for (const auto& iteration : endCopies) {
             const auto& dstIdx = iteration.first.first;
             const auto& srcIdx = iteration.second;
             orderInfo.setOutput(outputEdge(dstIdx), inputEdge(srcIdx)->input()->desc().dimsOrder());
         }
 
-        for (const auto& outputEdge : outputEdges()) {
-            const auto& attrs = outputEdge->output()->attrs();
-            if (!attrs.has("end-shared-allocation")) {
-                continue;
-            }
-            auto input = attrs.get<Data>("end-shared-allocation");
-            orderInfo.setOutput(outputEdge, input->desc().dimsOrder());
+        const auto& sharedAllocations = attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {});
+        for (const auto& sharedAllocation : sharedAllocations) {
+            const auto& srcIdx = sharedAllocation.second;
+            const auto& dstIdx = sharedAllocation.first;
+
+            orderInfo.setOutput(outputEdge(dstIdx), inputEdge(srcIdx)->input()->desc().dimsOrder());
         }
     }
 
@@ -54,9 +53,9 @@ protected:
     }
 
     void serializeParamsImpl(BlobSerializer& serializer) const override {
-        serializer.append(attrs().get<uint32_t>("iterations-count"));
+        serializer.append(attrs().get<uint32_t>(s_IterationsCountAttribute));
 
-        const auto& endCopies = attrs().getOrDefault<IterationComponents>("end-iteration-components", {});
+        const auto& endCopies = attrs().getOrDefault<IterationComponents>(s_IterationComponentsAttribute, {});
         serializer.append(checked_cast<uint32_t>(endCopies.size()));
         for (const auto& component : endCopies) {
             const auto& rule = component.first.second;
@@ -71,7 +70,7 @@ protected:
     }
 
     void serializeDataImpl(BlobSerializer& serializer) const override {
-        const auto& endCopies = attrs().getOrDefault<IterationComponents>("end-iteration-components", {});
+        const auto& endCopies = attrs().getOrDefault<IterationComponents>(s_IterationComponentsAttribute, {});
         for (const auto& iteration : endCopies) {
             output(iteration.first.first)->serializeBuffer(serializer);
             input(iteration.second)->serializeBuffer(serializer);

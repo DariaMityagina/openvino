@@ -35,5 +35,14 @@ private:
 };
 
 using IterationComponents = std::map<std::pair<std::size_t, IterationRule>, std::size_t>;
+using SharedAllocations   = std::map<std::size_t, std::size_t>;
+using Backedges           = std::map<std::size_t, std::size_t>;
+
+static const std::string s_IterationComponentsAttribute = "iteration-components";
+static const std::string s_SharedAllocationsAttribute   = "shared-allocations";
+static const std::string s_BackedgesAttribute           = "backedges";
+static const std::string s_IterationsCountAttribute     = "iterations-count";
+static const std::string s_StagesCountAttribute         = "stages-count";
+static const std::string s_LoopEndAttribute             = "loop-end";
 
 }  // namespace vpu

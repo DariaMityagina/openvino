@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 #include <utility>
+#include <vpu/stages/iteration_rule.hpp>
 
 namespace vpu {
 
@@ -577,71 +578,279 @@ void SpecialStageProcessor::processCrop(
 }
 
 void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& stage) {
-    for (const auto& input : stage->inputs()) {
-        if (input->attrs().has("start-shared-allocation")) {
-            const auto& src = input;
-            const auto& dst = input->attrs().get<Data>("start-shared-allocation");
+    for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
+        const auto& srcIndex = sharedAllocation.first;
+        const auto& dstIndex = sharedAllocation.second;
 
-            VPU_THROW_UNLESS(src->canHaveAParent() || dst->canHaveAParent(), "for all back-edge connections required copy stages must be already introduced");
+        auto input = stage->input(srcIndex);
+        auto output = stage->output(dstIndex);
 
-            auto parent = dst;
-            auto child  = src;
-            auto order  = SharedDataOrder::ChildWritesToParent;
-            if (!src->canHaveAParent()) {
-                std::swap(parent, child);
-                order = SharedDataOrder::ParentWritesToChild;
+        bool needCopy = false;
+        bool optionalCopy = false;
+        if (!input->canHaveAParent()) {
+            needCopy = true;
+            optionalCopy = false;
+        } else {
+            //
+            // Check input StridesRequirement.
+            //
+
+            IE_ASSERT(input->checkStrides(input->requiredStrides()));
+            if (!checkStrides(input->desc(), output->strides(), input->requiredStrides())) {
+                needCopy = true;
+                optionalCopy = false;
             }
 
-            model->connectDataWithData()
-                .parent(parent)
-                .child(child)
-                .mode(SharedDataMode::ROI)
-                .order(order)
-                .connectionMode(SharedConnectionMode::SUBGRAPH)
-                .done();
+            //
+            // Check consumers StridesRequirement.
+            //
+
+            if (!needCopy) {
+                for (const auto& consumerEdge : input->consumerEdges()) {
+                    const auto& consumerInfo = consumerEdge->consumer()->getDataStridesRequirements();
+
+                    if (consumerInfo.hasInput(consumerEdge)) {
+                        const auto& consumerStrideReqs = consumerInfo.getInput(consumerEdge);
+                        IE_ASSERT(input->checkStrides(consumerStrideReqs));
+
+                        if (!checkStrides(input->desc(), output->strides(), consumerStrideReqs)) {
+                            needCopy = true;
+                            optionalCopy = false;
+                        }
+                    }
+                }
+            }
+
+            //
+            // Check producer StridesRequirement.
+            //
+
+            if (!needCopy) {
+                if (auto producerEdge = input->producerEdge()) {
+                    const auto& producerInfo = producerEdge->producer()->getDataStridesRequirements();
+
+                    if (producerInfo.hasOutput(producerEdge)) {
+                        const auto& producerStrideReqs = producerInfo.getOutput(producerEdge);
+                        IE_ASSERT(input->checkStrides(producerStrideReqs));
+
+                        if (!checkStrides(input->desc(), output->strides(), producerStrideReqs)) {
+                            needCopy = true;
+                            optionalCopy = false;
+                        }
+                    }
+
+                    if (!needCopy) {
+                        //
+                        // To reduce the size of HW output (still can be optimized).
+                        //
+
+                        if (producerEdge->producer()->category() == StageCategory::HW) {
+                            needCopy = true;
+                            optionalCopy = true;
+                        }
+                    }
+                }
+            }
         }
-    }
 
-    for (const auto& backedge : stage->attrs().getOrDefault<HandleMultiMap<DataNode, Data>>("backedges", {})) {
-        const auto& src = backedge.first;
-        const auto& dst = backedge.second;
+        if (needCopy) {
+            Data inputCopy;
+            if (input->usage() == DataUsage::Const) {
+                inputCopy = model->addNewData(
+                    input->name() + "@copy-for-shared-allocation",
+                    input->desc());
+            } else {
+                inputCopy = model->duplicateData(
+                    input,
+                    "@copy-for-shared-allocation");
+                inputCopy->resetRequiredStrides();
+            }
 
-        // Tensor Iterator's body output data object must be a parent since it's not processed yet and don't have neither parent or child
+            auto copyStage = _stageBuilder->addCopyStage(
+                model,
+                formatString("{}@copy-for-expand", stage->name()),
+                stage->origLayer(),
+                input,
+                inputCopy,
+                "special::loop-start");
+            copyStage->attrs().set<bool>("optional", optionalCopy);
+            if (stage->attrs().has("batchInd")) {
+                copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
+            }
+
+            model->replaceStageInput(stage->inputEdge(srcIndex), inputCopy);
+
+            input = inputCopy;
+        }
+
         model->connectDataWithData()
-            .parent(dst)
-            .child(src)
+            .parent(output)
+            .child(input)
             .mode(SharedDataMode::ROI)
             .order(SharedDataOrder::ChildWritesToParent)
             .connectionMode(SharedConnectionMode::SUBGRAPH)
             .done();
     }
+
+    const auto& loopEnd = stage->attrs().get<Stage>(s_LoopEndAttribute);
+    for (const auto& backedge : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
+        const auto& srcIndex = backedge.first;
+        const auto& dstIndex = backedge.second;
+
+        auto input = loopEnd->input(srcIndex);
+        auto output = stage->output(dstIndex);
+        if (output->attrs().has("convertedData")) {
+            const auto& convertedDataObjects = output->attrs().get<DataVector>("convertedData");
+            VPU_THROW_UNLESS(convertedDataObjects.size() == 1, "There must be only one converted data objects for LoopStart {} output {}, but {} provided",
+                stage->name(), output->name(), convertedDataObjects.size());
+            output = convertedDataObjects.front();
+        }
+
+        auto inputCopy = model->duplicateData(input,"@copy-for-backedge");
+        inputCopy->resetRequiredStrides();
+
+        auto copyStage = _stageBuilder->addCopyStage(
+            model,
+            formatString("@copy-for-backedge"),
+            nullptr,
+            input,
+            inputCopy,
+            "special::backedge");
+        if (stage->attrs().has("batchInd")) {
+            copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
+        }
+
+        model->replaceStageInput(loopEnd->inputEdge(srcIndex), inputCopy);
+
+        input = inputCopy;
+
+        model->connectDataWithData()
+            .parent(output)
+            .child(input)
+            .mode(SharedDataMode::ROI)
+            .order(SharedDataOrder::ChildWritesToParent)
+            .connectionMode(SharedConnectionMode::SUBGRAPH)
+            .done();
+
+//        // Tensor Iterator's body output data object must be a parent since it's not processed yet and don't have neither parent or child
+//        model->connectDatas()
+//            .parent(loopStart->output(dstIndex))
+//            .child(loopEnd->input(srcIndex))
+//            .mode(SharedDataMode::ROI)
+//            .order(SharedDataOrder::ChildWritesToParent)
+//            .connectionMode(SharedConnectionMode::SUBGRAPH)
+//            .done();
+    }
+
+    for (const auto& loopStartInput : stage->inputs()) {
+        model->addStageInput(loopEnd, loopStartInput);
+    }
 }
 
 void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stage) {
-    for (const auto& output : stage->outputs()) {
-        if (output->attrs().has("end-shared-allocation")) {
-            const auto& src = output->attrs().get<Data>("end-shared-allocation");
-            const auto& dst = output;
+    for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
+        const auto& srcIndex = sharedAllocation.second;
+        const auto& dstIndex = sharedAllocation.first;
 
-            VPU_THROW_UNLESS(src->canHaveAParent() || dst->canHaveAParent(),
-                "for all shared allocation connections required copy stages must be already introduced");
+        auto input = stage->input(srcIndex);
+        auto output = stage->output(dstIndex);
 
-            auto parent = dst;
-            auto child  = src;
-            auto order  = SharedDataOrder::ChildWritesToParent;
-            if (!src->canHaveAParent()) {
-                std::swap(parent, child);
-                order = SharedDataOrder::ParentWritesToChild;
+        bool needCopy = false;
+        bool optionalCopy = false;
+        if (!output->canHaveAParent()) {
+            needCopy = true;
+            optionalCopy = false;
+        } else {
+            //
+            // Check input StridesRequirement.
+            //
+
+            IE_ASSERT(output->checkStrides(output->requiredStrides()));
+            if (!checkStrides(output->desc(), input->strides(), output->requiredStrides())) {
+                needCopy = true;
+                optionalCopy = false;
             }
 
-            model->connectDataWithData()
-                .parent(parent)
-                .child(child)
-                .mode(SharedDataMode::ROI)
-                .order(order)
-                .connectionMode(SharedConnectionMode::SUBGRAPH)
-                .done();
+            //
+            // Check consumers StridesRequirement.
+            //
+
+            if (!needCopy) {
+                for (const auto& consumerEdge : output->consumerEdges()) {
+                    const auto& consumerInfo = consumerEdge->consumer()->getDataStridesRequirements();
+
+                    if (consumerInfo.hasInput(consumerEdge)) {
+                        const auto& consumerStrideReqs = consumerInfo.getInput(consumerEdge);
+                        IE_ASSERT(output->checkStrides(consumerStrideReqs));
+
+                        if (!checkStrides(output->desc(), input->strides(), consumerStrideReqs)) {
+                            needCopy = true;
+                            optionalCopy = false;
+                        }
+                    }
+                }
+            }
+
+            //
+            // Check producer StridesRequirement.
+            //
+
+            if (!needCopy) {
+                if (auto producerEdge = output->producerEdge()) {
+                    const auto& producerInfo = producerEdge->producer()->getDataStridesRequirements();
+
+                    if (producerInfo.hasOutput(producerEdge)) {
+                        const auto& producerStrideReqs = producerInfo.getOutput(producerEdge);
+                        IE_ASSERT(output->checkStrides(producerStrideReqs));
+
+                        if (!checkStrides(output->desc(), input->strides(), producerStrideReqs)) {
+                            needCopy = true;
+                            optionalCopy = false;
+                        }
+                    }
+
+                    if (!needCopy) {
+                        //
+                        // To reduce the size of HW output (still can be optimized).
+                        //
+
+                        if (producerEdge->producer()->category() == StageCategory::HW) {
+                            needCopy = true;
+                            optionalCopy = true;
+                        }
+                    }
+                }
+            }
         }
+
+        if (needCopy) {
+            auto outputCopy = model->duplicateData(output, "@copy-for-shared-allocation");
+            outputCopy->resetRequiredStrides();
+
+            model->replaceStageOutput(stage->outputEdge(dstIndex), outputCopy);
+
+            auto copyStage = _stageBuilder->addCopyStage(
+                model,
+                formatString("{}@copy-for-loop-end", stage->name()),
+                stage->origLayer(),
+                outputCopy,
+                output,
+                "special::loop-end");
+            copyStage->attrs().set<bool>("optional", optionalCopy);
+            if (stage->attrs().has("batchInd")) {
+                copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
+            }
+
+            output = outputCopy;
+        }
+
+        model->connectDataWithData()
+            .parent(input)
+            .child(output)
+            .mode(SharedDataMode::ROI)
+            .order(SharedDataOrder::ParentWritesToChild)
+            .connectionMode(SharedConnectionMode::SUBGRAPH)
+            .done();
     }
 }
 

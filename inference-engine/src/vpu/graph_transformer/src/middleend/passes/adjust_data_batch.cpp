@@ -134,6 +134,7 @@ void PassImpl::wrapInLoop(const Model& model, const StageList& subgraph) {
 
     DataVector loopStartInputs, loopStartOutputs, loopEndInputs, loopEndOutputs;
     IterationComponents startIterationComponents, endIterationComponents;
+    SharedAllocations startSharedAllocations;
 
     for (const auto& stage : subgraph) {
         const auto& batchInfo = stage->getBatchSupportInfo();
@@ -168,8 +169,7 @@ void PassImpl::wrapInLoop(const Model& model, const StageList& subgraph) {
                         const auto rule = IterationRule{Dim::N, 0, 1, -1};
                         startIterationComponents.emplace(std::make_pair(loopStartInputs.size() - 1, rule), loopStartOutputs.size() - 1);
                     } else {
-                        // do not allocate extra memory since there cannot be back-edge connection
-                        input->attrs().set<Data>("start-shared-allocation", loopStartOutput);
+                        startSharedAllocations.emplace(loopStartInputs.size() - 1, loopStartOutputs.size() - 1);
                     }
 
                     model->replaceStageInput(inputEdge, loopStartOutput);
@@ -205,11 +205,12 @@ void PassImpl::wrapInLoop(const Model& model, const StageList& subgraph) {
     auto loopEnd = _stageBuilder->addLoopEndStage(model, formatString("LoopEnd@Batch@{}", loopIndex), loopEndInputs, loopEndOutputs);
     ++loopIndex;
 
-    loopStart->attrs().set("start-iteration-components", startIterationComponents);
-    loopEnd->attrs().set("end-iteration-components", endIterationComponents);
-    loopStart->attrs().set("loop-end", loopEnd);
-    loopStart->attrs().set<uint32_t>("iterations-count", subgraph.front()->attrs().get<int>("batchSize"));
-    loopEnd->attrs().set<uint32_t>("iterations-count", subgraph.front()->attrs().get<int>("batchSize"));
+    loopStart->attrs().set(s_IterationComponentsAttribute, startIterationComponents);
+    loopEnd->attrs().set(s_IterationComponentsAttribute, endIterationComponents);
+    loopStart->attrs().set(s_LoopEndAttribute, loopEnd);
+    loopStart->attrs().set(s_SharedAllocationsAttribute, startSharedAllocations);
+    loopStart->attrs().set<uint32_t>(s_IterationsCountAttribute, subgraph.front()->attrs().get<int>("batchSize"));
+    loopEnd->attrs().set<uint32_t>(s_IterationsCountAttribute, subgraph.front()->attrs().get<int>("batchSize"));
 }
 
 //

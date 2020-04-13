@@ -3,6 +3,7 @@
 //
 
 #include "vpu/middleend/pass_manager.hpp"
+#include "vpu/stages/iteration_rule.hpp"
 
 #include <set>
 #include <memory>
@@ -18,21 +19,22 @@ public:
         for (const auto& stage : model->getStages()) {
             if (stage->type() == StageType::LoopStart) {
                 VPU_THROW_UNLESS(currentLoopAttributes == nullptr, "Nested loops are not supported yet");
-                VPU_THROW_UNLESS(!stage->attrs().has("stages-count"), "The same LoopStart must not be visited twice");
+                VPU_THROW_UNLESS(!stage->attrs().has(s_StagesCountAttribute), "The same LoopStart must not be visited twice");
 
                 currentLoopAttributes = &stage->attrs();
-                currentLoopAttributes->set<uint32_t>("stages-count", 1);
+                currentLoopAttributes->set<uint32_t>(s_StagesCountAttribute, 1);
             } else if (stage->type() == StageType::LoopEnd) {
-                VPU_THROW_UNLESS(currentLoopAttributes != nullptr && currentLoopAttributes->has("stages-count"), "Loop Start must be already encountered");
+                VPU_THROW_UNLESS(currentLoopAttributes != nullptr && currentLoopAttributes->has(s_StagesCountAttribute),
+                    "Loop Start must be already encountered");
 
-                auto& stagesCount = currentLoopAttributes->get<uint32_t>("stages-count");
+                auto& stagesCount = currentLoopAttributes->get<uint32_t>(s_StagesCountAttribute);
                 stagesCount++;
                 currentLoopAttributes = nullptr;
             } else if (currentLoopAttributes != nullptr) {
-                VPU_THROW_UNLESS(currentLoopAttributes->has("stages-count"), "Loop Start must be counted as a stage in the loop");
+                VPU_THROW_UNLESS(currentLoopAttributes->has(s_StagesCountAttribute), "Loop Start must be counted as a stage in the loop");
 
                 if (static_cast<int>(stage->type()) >= 0) {
-                    auto& stagesCount = currentLoopAttributes->get<uint32_t>("stages-count");
+                    auto& stagesCount = currentLoopAttributes->get<uint32_t>(s_StagesCountAttribute);
                     stagesCount++;
                 }
             }

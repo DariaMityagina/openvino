@@ -18,6 +18,7 @@
 #include <vpu/middleend/allocator/allocator.hpp>
 #include <vpu/compile_env.hpp>
 #include <vpu/utils/auto_scope.hpp>
+#include <vpu/stages/iteration_rule.hpp>
 
 namespace vpu {
 
@@ -176,7 +177,7 @@ AllocationResult runAllocator(const Model& model, bool onlyCheckCMX) {
 
         if (stage->type() == StageType::LoopStart) {
             // To avoid re-usage Loop End's outputs memory by data objects inside loop - allocate it before them
-            const auto& loopEnd = stage->attrs().get<Stage>("loop-end");
+            const auto& loopEnd = stage->attrs().get<Stage>(s_LoopEndAttribute);
             const auto loopEndAllocation = allocateStageOutputs(loopEnd);
             if (loopEndAllocation.status != AllocationStatus::OK) {
                 return loopEndAllocation;
