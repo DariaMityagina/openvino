@@ -577,7 +577,79 @@ void SpecialStageProcessor::processCrop(
         .done();
 }
 
+// void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& stage) {
+//     std::cout<<"LOOP_START\n";
+//     for (const auto& input : stage->inputs()) {
+//         if (input->attrs().has("start-shared-allocation")) {
+//             const auto& src = input;
+//             const auto& dst = input->attrs().get<Data>("start-shared-allocation");
+
+//             VPU_THROW_UNLESS(src->canHaveAParent() || dst->canHaveAParent(), "for all back-edge connections required copy stages must be already introduced");
+
+//             auto parent = dst;
+//             auto child  = src;
+//             auto order  = SharedDataOrder::ChildWritesToParent;
+//             if (!src->canHaveAParent()) {
+//                 std::swap(parent, child);
+//                 order = SharedDataOrder::ParentWritesToChild;
+//             }
+
+//             model->connectDataWithData()
+//                 .parent(parent)
+//                 .child(child)
+//                 .mode(SharedDataMode::ROI)
+//                 .order(order)
+//                 .connectionMode(SharedConnectionMode::SUBGRAPH)
+//                 .done();
+//         }
+//     }
+
+//     for (const auto& backedge : stage->attrs().getOrDefault<HandleMultiMap<DataNode, Data>>("backedges", {})) {
+//         const auto& src = backedge.first;
+//         const auto& dst = backedge.second;
+
+//         // Tensor Iterator's body output data object must be a parent since it's not processed yet and don't have neither parent or child
+//         model->connectDataWithData()
+//             .parent(dst)
+//             .child(src)
+//             .mode(SharedDataMode::ROI)
+//             .order(SharedDataOrder::ChildWritesToParent)
+//             .connectionMode(SharedConnectionMode::SUBGRAPH)
+//             .done();
+//     }
+// }
+
+// void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stage) {
+//     std::cout<<"LOOP_END\n";
+//     for (const auto& output : stage->outputs()) {
+//         if (output->attrs().has("end-shared-allocation")) {
+//             const auto& src = output->attrs().get<Data>("end-shared-allocation");
+//             const auto& dst = output;
+
+//             VPU_THROW_UNLESS(src->canHaveAParent() || dst->canHaveAParent(),
+//                 "for all shared allocation connections required copy stages must be already introduced");
+
+//             auto parent = dst;
+//             auto child  = src;
+//             auto order  = SharedDataOrder::ChildWritesToParent;
+//             if (!src->canHaveAParent()) {
+//                 std::swap(parent, child);
+//                 order = SharedDataOrder::ParentWritesToChild;
+//             }
+
+//             model->connectDataWithData()
+//                 .parent(parent)
+//                 .child(child)
+//                 .mode(SharedDataMode::ROI)
+//                 .order(order)
+//                 .connectionMode(SharedConnectionMode::SUBGRAPH)
+//                 .done();
+//         }
+//     }
+// }
+
 void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& stage) {
+    printf("LOOP_START\n");
     for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
         const auto& srcIndex = sharedAllocation.first;
         const auto& dstIndex = sharedAllocation.second;
@@ -673,7 +745,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
                 input,
                 inputCopy,
                 "special::loop-start");
-            copyStage->attrs().set<bool>("optional", optionalCopy);
+            // copyStage->attrs().set<bool>("optional", optionalCopy);
             if (stage->attrs().has("batchInd")) {
                 copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
             }
@@ -748,6 +820,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
 }
 
 void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stage) {
+    printf("LOOP_END\n");
     for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
         const auto& srcIndex = sharedAllocation.second;
         const auto& dstIndex = sharedAllocation.first;
@@ -836,7 +909,7 @@ void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stag
                 outputCopy,
                 output,
                 "special::loop-end");
-            copyStage->attrs().set<bool>("optional", optionalCopy);
+            // copyStage->attrs().set<bool>("optional", optionalCopy);
             if (stage->attrs().has("batchInd")) {
                 copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
             }
