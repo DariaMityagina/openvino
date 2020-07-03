@@ -311,26 +311,26 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
         auto loopStart = _stageBuilder->addLoopStartStage(model, tensorIterator->name + "@LoopStart", loopStartInputs, loopStartOutputs);
         loopStart->attrs().set(s_IterationComponentsAttribute, start_iteration_components);
         loopStart->attrs().set(s_SharedAllocationsAttribute, sharedAllocations);
-//        Backedges backedgesComponents;
-//        for (const auto& backedge : backedges) {
-//            const auto& parent = getVpuData(backedge.first.first);
-//            VPU_THROW_UNLESS(parent != nullptr, "Loop End's inputs must be already parsed");
-//
-//            const auto& child = getVpuData(backedge.second.front());
-//            VPU_THROW_UNLESS(child != nullptr, "Loop Start's outputs must be already parsed");
-//
-//            const auto& src_copy = parent;
-//            auto dst_copy = model->duplicateData(child, "@copy-for-backedge");
-//            for (const auto& consumerEdge : src_copy->consumerEdges()) {
-//                model->replaceStageInput(consumerEdge, dst_copy);
-//            }
-//
-//            _stageBuilder->addCopyStage(model, "copy-for-backedge", nullptr, src_copy, dst_copy, "copy for backedge");
-//
-//            backedgesComponents.emplace();
-//            // keep track of back-edges to introduce shared data allocation edges in Middle-End
-//            loopStart->attrs().getOrSet<HandleMultiMap<DataNode, Data>>(s_BackedgesAttribute, {}).emplace(dst_copy, child);
-//        }
+    //    Backedges backedgesComponents;
+    //    for (const auto& backedge : backedges) {
+    //        const auto& parent = getVpuData(backedge.first.first);
+    //        VPU_THROW_UNLESS(parent != nullptr, "Loop End's inputs must be already parsed");
+
+    //        const auto& child = getVpuData(backedge.second.front());
+    //        VPU_THROW_UNLESS(child != nullptr, "Loop Start's outputs must be already parsed");
+
+    //        const auto& src_copy = parent;
+    //        auto dst_copy = model->duplicateData(child, "@copy-for-backedge");
+    //        for (const auto& consumerEdge : src_copy->consumerEdges()) {
+    //            model->replaceStageInput(consumerEdge, dst_copy);
+    //        }
+
+    //        _stageBuilder->addCopyStage(model, "copy-for-backedge", nullptr, src_copy, dst_copy, "copy for backedge");
+
+    //        backedgesComponents.emplace();
+    //        // keep track of back-edges to introduce shared data allocation edges in Middle-End
+    //        loopStart->attrs().getOrSet<HandleMultiMap<DataNode, Data>>(s_BackedgesAttribute, {}).emplace(dst_copy, child);
+    //    }
 
         return loopStart;
     };
@@ -483,9 +483,9 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
 
     // to be sure all loop's inputs are still alive during loop execution
     // force they to be alive as long as loop's outputs
-//    for (const auto& loopStartInput : loopStart->inputs()) {
-//        model->addStageInput(loopEnd, loopStartInput);
-//    }
+    for (const auto& loopStartInput : loopStart->inputs()) {
+        model->addStageInput(loopEnd, loopStartInput);
+    }
 
     for (const auto& bodyLayer : ie::NetPass::TIBodySortTopologically(tensorIterator->body)) {
         if (bodyLayer->type == "Const") {

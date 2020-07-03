@@ -639,16 +639,16 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
                         }
                     }
 
-                    if (!needCopy) {
-                        //
-                        // To reduce the size of HW output (still can be optimized).
-                        //
+                    // if (!needCopy) {
+                    //     //
+                    //     // To reduce the size of HW output (still can be optimized).
+                    //     //
 
-                        if (producerEdge->producer()->category() == StageCategory::HW) {
-                            needCopy = true;
-                            optionalCopy = true;
-                        }
-                    }
+                    //     if (producerEdge->producer()->category() == StageCategory::HW) {
+                    //         needCopy = true;
+                    //         optionalCopy = true;
+                    //     }
+                    // }
                 }
             }
         }
@@ -809,16 +809,16 @@ void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stag
                         }
                     }
 
-                    if (!needCopy) {
-                        //
-                        // To reduce the size of HW output (still can be optimized).
-                        //
+                    // if (!needCopy) {
+                    //     //
+                    //     // To reduce the size of HW output (still can be optimized).
+                    //     //
 
-                        if (producerEdge->producer()->category() == StageCategory::HW) {
-                            needCopy = true;
-                            optionalCopy = true;
-                        }
-                    }
+                    //     if (producerEdge->producer()->category() == StageCategory::HW) {
+                    //         needCopy = true;
+                    //         optionalCopy = true;
+                    //     }
+                    // }
                 }
             }
         }
