@@ -34,6 +34,7 @@
 #include <inference_engine.hpp>
 #include <common.hpp>
 #include <vpu/vpu_plugin_config.hpp>
+#include "vpu/private_plugin_config.hpp"
 
 static char* m_exename = nullptr;
 
@@ -154,9 +155,11 @@ static bool loadBinaryTensor(const std::string &binaryFilename, InferenceEngine:
 
 static void setConfig(std::map<std::string, std::string>& config,
                       const std::string& file_config_cl) {
-    config[CONFIG_KEY(LOG_LEVEL)] = CONFIG_VALUE(LOG_WARNING);
-    config[VPU_CONFIG_KEY(PRINT_RECEIVE_TENSOR_TIME)] = CONFIG_VALUE(YES);
-    config[VPU_CONFIG_KEY(CUSTOM_LAYERS)] = file_config_cl;
+    // config[CONFIG_KEY(LOG_LEVEL)] = CONFIG_VALUE(LOG_WARNING);
+    // config[VPU_CONFIG_KEY(PRINT_RECEIVE_TENSOR_TIME)] = CONFIG_VALUE(YES);
+    // config[VPU_CONFIG_KEY(CUSTOM_LAYERS)] = file_config_cl;
+    config[VPU_CONFIG_KEY(FORCE_PURE_TENSOR_ITERATOR)] = CONFIG_VALUE(YES);
+    config[VPU_CONFIG_KEY(ENABLE_TENSOR_ITERATOR_UNROLLING)] = CONFIG_VALUE(NO);
 }
 
 static void printPerformanceCounts(const std::map<std::string, InferenceEngine::InferenceEngineProfileInfo>& perfMap) {
@@ -361,7 +364,7 @@ int process(const std::string& modelFileName, const std::string& inputsDir,
     }
 
     InferenceEngine::InputsDataMap networkInputs;
-    networkInputs = cnnNetwork.getInputsInfo();
+    // networkInputs = cnnNetwork.getInputsInfo();
     InferenceEngine::OutputsDataMap networkOutputs;
     networkOutputs = cnnNetwork.getOutputsInfo();
 
@@ -390,7 +393,8 @@ int process(const std::string& modelFileName, const std::string& inputsDir,
         else
             printf("Load network... \n");
         fflush(stdout);
-        exeNetwork[n] = ie.LoadNetwork(cnnNetwork, deviceName, networkConfig);
+        // exeNetwork[n] = ie.LoadNetwork(cnnNetwork, deviceName, networkConfig);
+        exeNetwork[n] = ie.LoadNetwork(cnnNetwork, deviceName, {{VPU_CONFIG_KEY(FORCE_PURE_TENSOR_ITERATOR), CONFIG_VALUE(YES)}, {VPU_CONFIG_KEY(ENABLE_TENSOR_ITERATOR_UNROLLING), CONFIG_VALUE(NO)}});
     }
 
     std::vector<InferenceEngine::IInferRequest::Ptr> request(num_requests);

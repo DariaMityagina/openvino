@@ -650,9 +650,13 @@ void SpecialStageProcessor::processCrop(
 
 void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& stage) {
     printf("LOOP_START\n");
+
     for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
         const auto& srcIndex = sharedAllocation.first;
         const auto& dstIndex = sharedAllocation.second;
+
+        std::cout<<"Start srcIndex "<<srcIndex<<"\n";
+        std::cout<<"Start dstIndex "<<dstIndex<<"\n";
 
         auto input = stage->input(srcIndex);
         auto output = stage->output(dstIndex);
@@ -669,6 +673,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
 
             IE_ASSERT(input->checkStrides(input->requiredStrides()));
             if (!checkStrides(input->desc(), output->strides(), input->requiredStrides())) {
+                printf("-- cond-n strides --\n");
                 needCopy = true;
                 optionalCopy = false;
             }
@@ -679,6 +684,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
 
             if (!needCopy) {
                 for (const auto& consumerEdge : input->consumerEdges()) {
+                    printf("-- cond-n consumerEdges --\n");
                     const auto& consumerInfo = consumerEdge->consumer()->getDataStridesRequirements();
 
                     if (consumerInfo.hasInput(consumerEdge)) {
@@ -686,6 +692,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
                         IE_ASSERT(input->checkStrides(consumerStrideReqs));
 
                         if (!checkStrides(input->desc(), output->strides(), consumerStrideReqs)) {
+                            printf("-- cond-n consumerEdges strides --\n");
                             needCopy = true;
                             optionalCopy = false;
                         }
@@ -699,6 +706,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
 
             if (!needCopy) {
                 if (auto producerEdge = input->producerEdge()) {
+                    printf("-- cond-n producerEdge --\n");
                     const auto& producerInfo = producerEdge->producer()->getDataStridesRequirements();
 
                     if (producerInfo.hasOutput(producerEdge)) {
@@ -706,21 +714,23 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
                         IE_ASSERT(input->checkStrides(producerStrideReqs));
 
                         if (!checkStrides(input->desc(), output->strides(), producerStrideReqs)) {
+                            printf("-- cond-n producerEdge strides --\n");
                             needCopy = true;
                             optionalCopy = false;
                         }
                     }
 
-                    // if (!needCopy) {
-                    //     //
-                    //     // To reduce the size of HW output (still can be optimized).
-                    //     //
+                    if (!needCopy) {
+                        //
+                        // To reduce the size of HW output (still can be optimized).
+                        //
 
-                    //     if (producerEdge->producer()->category() == StageCategory::HW) {
-                    //         needCopy = true;
-                    //         optionalCopy = true;
-                    //     }
-                    // }
+                        if (producerEdge->producer()->category() == StageCategory::HW) {
+                            printf("-- cond-n HW --\n");
+                            needCopy = true;
+                            optionalCopy = true;
+                        }
+                    }
                 }
             }
         }
@@ -728,10 +738,12 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
         if (needCopy) {
             Data inputCopy;
             if (input->usage() == DataUsage::Const) {
+                printf("-- DataUsage::Const --\n");
                 inputCopy = model->addNewData(
                     input->name() + "@copy-for-shared-allocation",
                     input->desc());
             } else {
+                printf("-- DataUsage::Not Const --\n");
                 inputCopy = model->duplicateData(
                     input,
                     "@copy-for-shared-allocation");
@@ -745,7 +757,7 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
                 input,
                 inputCopy,
                 "special::loop-start");
-            // copyStage->attrs().set<bool>("optional", optionalCopy);
+            copyStage->attrs().set<bool>("optional", optionalCopy);
             if (stage->attrs().has("batchInd")) {
                 copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
             }
@@ -755,64 +767,72 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
             input = inputCopy;
         }
 
+        printf("-- needCopy = %d --\n", static_cast<int>(needCopy));
+        printf("-- optionalCopy = %d --\n", static_cast<int>(optionalCopy));
+
+        auto order  = SharedDataOrder::ChildWritesToParent;
+        // if (!input->canHaveAParent()) {
+        //     std::swap(output, input);
+        //     order = SharedDataOrder::ParentWritesToChild;
+        // }
+
         model->connectDataWithData()
             .parent(output)
             .child(input)
             .mode(SharedDataMode::ROI)
-            .order(SharedDataOrder::ChildWritesToParent)
+            .order(order)
             .connectionMode(SharedConnectionMode::SUBGRAPH)
             .done();
     }
 
     const auto& loopEnd = stage->attrs().get<Stage>(s_LoopEndAttribute);
-    for (const auto& backedge : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
-        const auto& srcIndex = backedge.first;
-        const auto& dstIndex = backedge.second;
 
-        auto input = loopEnd->input(srcIndex);
-        auto output = stage->output(dstIndex);
-        if (output->attrs().has("convertedData")) {
-            const auto& convertedDataObjects = output->attrs().get<DataVector>("convertedData");
-            VPU_THROW_UNLESS(convertedDataObjects.size() == 1, "There must be only one converted data objects for LoopStart {} output {}, but {} provided",
-                stage->name(), output->name(), convertedDataObjects.size());
-            output = convertedDataObjects.front();
-        }
+    // for (const auto& backedge : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
+    //     const auto& srcIndex = backedge.first;
+    //     const auto& dstIndex = backedge.second;
 
-        auto inputCopy = model->duplicateData(input,"@copy-for-backedge");
-        inputCopy->resetRequiredStrides();
+    //     auto input = loopEnd->input(srcIndex);
+    //     auto output = stage->output(dstIndex);
+    //     if (output->attrs().has("convertedData")) {
+    //         printf("-- convertedData --\n");
+    //         const auto& convertedDataObjects = output->attrs().get<DataVector>("convertedData");
+    //         VPU_THROW_UNLESS(convertedDataObjects.size() == 1, "There must be only one converted data objects for LoopStart {} output {}, but {} provided",
+    //             stage->name(), output->name(), convertedDataObjects.size());
+    //         output = convertedDataObjects.front();
+    //     }
 
-        auto copyStage = _stageBuilder->addCopyStage(
-            model,
-            formatString("@copy-for-backedge"),
-            nullptr,
-            input,
-            inputCopy,
-            "special::backedge");
-        if (stage->attrs().has("batchInd")) {
-            copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
-        }
+    //     auto inputCopy = model->duplicateData(input,"@copy-for-backedge");
+    //     inputCopy->resetRequiredStrides();
 
-        model->replaceStageInput(loopEnd->inputEdge(srcIndex), inputCopy);
+    //     auto copyStage = _stageBuilder->addCopyStage(
+    //         model,
+    //         formatString("@copy-for-backedge"),
+    //         nullptr,
+    //         input,
+    //         inputCopy,
+    //         "special::backedge");
+    //     if (stage->attrs().has("batchInd")) {
+    //         copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
+    //     }
 
-        input = inputCopy;
+    //     model->replaceStageInput(loopEnd->inputEdge(srcIndex), inputCopy);
 
-        model->connectDataWithData()
-            .parent(output)
-            .child(input)
-            .mode(SharedDataMode::ROI)
-            .order(SharedDataOrder::ChildWritesToParent)
-            .connectionMode(SharedConnectionMode::SUBGRAPH)
-            .done();
+    //     input = inputCopy;
 
-//        // Tensor Iterator's body output data object must be a parent since it's not processed yet and don't have neither parent or child
-//        model->connectDatas()
-//            .parent(loopStart->output(dstIndex))
-//            .child(loopEnd->input(srcIndex))
-//            .mode(SharedDataMode::ROI)
-//            .order(SharedDataOrder::ChildWritesToParent)
-//            .connectionMode(SharedConnectionMode::SUBGRAPH)
-//            .done();
-    }
+    //     auto order  = SharedDataOrder::ChildWritesToParent;
+    //     // if (!input->canHaveAParent()) {
+    //     //     std::swap(output, input);
+    //     //     order = SharedDataOrder::ParentWritesToChild;
+    //     // }
+
+    //     model->connectDataWithData()
+    //         .parent(output)
+    //         .child(input)
+    //         .mode(SharedDataMode::ROI)
+    //         .order(order)
+    //         .connectionMode(SharedConnectionMode::SUBGRAPH)
+    //         .done();
+    // }
 
     for (const auto& loopStartInput : stage->inputs()) {
         model->addStageInput(loopEnd, loopStartInput);
@@ -821,15 +841,20 @@ void SpecialStageProcessor::processLoopStart(const Model& model, const Stage& st
 
 void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stage) {
     printf("LOOP_END\n");
+
     for (const auto& sharedAllocation : stage->attrs().getOrDefault<SharedAllocations>(s_SharedAllocationsAttribute, {})) {
         const auto& srcIndex = sharedAllocation.second;
         const auto& dstIndex = sharedAllocation.first;
+
+        std::cout<<"End srcIndex "<<srcIndex<<"\n";
+        std::cout<<"End dstIndex "<<dstIndex<<"\n";
 
         auto input = stage->input(srcIndex);
         auto output = stage->output(dstIndex);
 
         bool needCopy = false;
         bool optionalCopy = false;
+
         if (!output->canHaveAParent()) {
             needCopy = true;
             optionalCopy = false;
@@ -882,16 +907,16 @@ void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stag
                         }
                     }
 
-                    // if (!needCopy) {
-                    //     //
-                    //     // To reduce the size of HW output (still can be optimized).
-                    //     //
+                    if (!needCopy) {
+                        //
+                        // To reduce the size of HW output (still can be optimized).
+                        //
 
-                    //     if (producerEdge->producer()->category() == StageCategory::HW) {
-                    //         needCopy = true;
-                    //         optionalCopy = true;
-                    //     }
-                    // }
+                        if (producerEdge->producer()->category() == StageCategory::HW) {
+                            needCopy = true;
+                            optionalCopy = true;
+                        }
+                    }
                 }
             }
         }
@@ -909,7 +934,7 @@ void SpecialStageProcessor::processLoopEnd(const Model& model, const Stage& stag
                 outputCopy,
                 output,
                 "special::loop-end");
-            // copyStage->attrs().set<bool>("optional", optionalCopy);
+            copyStage->attrs().set<bool>("optional", optionalCopy);
             if (stage->attrs().has("batchInd")) {
                 copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
             }

@@ -233,11 +233,6 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
             VPU_THROW_UNLESS(vpuTensorIteratorInput != nullptr, "Tensor Iterator's inputs must be parsed already");
 
             const auto& loopStartInput = vpuTensorIteratorInput;
-//            if (!vpuTensorIteratorInput->canHaveAParent()) {
-//                auto copied = model->addNewData(vpuTensorIteratorInput->name() + "@copy-for-backedge", vpuTensorIteratorInput->desc());
-//                _stageBuilder->addCopyStage(model, "copy-for-backedge", nullptr, vpuTensorIteratorInput, copied, "copy for backedge");
-//                loopStartInput = copied;
-//            }
 
             const auto& backedgeInputs = backedge.second;
             VPU_THROW_UNLESS(allTheSame(backedgeInputs), "Different data objects cannot be mapped into the same data object");
@@ -311,26 +306,6 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
         auto loopStart = _stageBuilder->addLoopStartStage(model, tensorIterator->name + "@LoopStart", loopStartInputs, loopStartOutputs);
         loopStart->attrs().set(s_IterationComponentsAttribute, start_iteration_components);
         loopStart->attrs().set(s_SharedAllocationsAttribute, sharedAllocations);
-    //    Backedges backedgesComponents;
-    //    for (const auto& backedge : backedges) {
-    //        const auto& parent = getVpuData(backedge.first.first);
-    //        VPU_THROW_UNLESS(parent != nullptr, "Loop End's inputs must be already parsed");
-
-    //        const auto& child = getVpuData(backedge.second.front());
-    //        VPU_THROW_UNLESS(child != nullptr, "Loop Start's outputs must be already parsed");
-
-    //        const auto& src_copy = parent;
-    //        auto dst_copy = model->duplicateData(child, "@copy-for-backedge");
-    //        for (const auto& consumerEdge : src_copy->consumerEdges()) {
-    //            model->replaceStageInput(consumerEdge, dst_copy);
-    //        }
-
-    //        _stageBuilder->addCopyStage(model, "copy-for-backedge", nullptr, src_copy, dst_copy, "copy for backedge");
-
-    //        backedgesComponents.emplace();
-    //        // keep track of back-edges to introduce shared data allocation edges in Middle-End
-    //        loopStart->attrs().getOrSet<HandleMultiMap<DataNode, Data>>(s_BackedgesAttribute, {}).emplace(dst_copy, child);
-    //    }
 
         return loopStart;
     };
@@ -407,11 +382,6 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
             VPU_THROW_UNLESS(vpuTensorIteratorOutput != nullptr, "Tensor Iterator's outputs must be parsed already");
 
             const auto& loopEndOutput = vpuTensorIteratorOutput;
-//            if (loopEndOutput->usage() == DataUsage::Output) {
-//                auto to_copy = model->addNewData(loopEndOutput->name() + "@copy-for-backedge", loopEndOutput->desc());
-//                _stageBuilder->addCopyStage(model, "copy-for-tensor-iterator-output", nullptr, to_copy, loopEndOutput, "copy for TI output");
-//                loopEndOutput = to_copy;
-//            }
 
             const auto& intermediateDataInput = intermediateDataObject.second;
             VPU_THROW_UNLESS(getVpuData(intermediateDataInput) == nullptr, "Tensor Iterator's body output data objects were not parsed yet");
@@ -468,14 +438,6 @@ void FrontEnd::parseTensorIterator(const Model& model, const ie::CNNLayerPtr& la
 
         VPU_THROW_UNLESS(backedgeSrc != std::numeric_limits<std::size_t>::max(), R"(There is no connected body output for backedge with {} as body input)",
             bodyInput->getName());
-
-//        const auto& src_copy = loopEnd->input(backedgeSrc);
-//        auto dst_copy = model->duplicateData(src_copy, "@copy-for-backedge");
-//        for (const auto& consumerEdge : src_copy->consumerEdges()) {
-//            model->replaceStageInput(consumerEdge, dst_copy);
-//        }
-//
-//        _stageBuilder->addCopyStage(model, "copy-for-backedge", nullptr, src_copy, dst_copy, "copy for backedge");
 
         backedges.emplace(backedgeSrc, backedgeDst);
     }

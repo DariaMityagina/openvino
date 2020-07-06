@@ -37,6 +37,7 @@ void PassImpl::run(const Model& model) {
     //
 
     for (const auto& curExpandStage : model->getStages()) {
+        std::cout<<curExpandStage->type()<<"\n";
         if (curExpandStage == nullptr) {
             continue;
         }
