@@ -1355,6 +1355,9 @@ public:
      * axis=1 means first input/output data blob dimension is batch
      */
     unsigned int axis = 1;
+    // int stride = 1;
+    // int start = 0;
+    // int end = 1;
 
     /**
      * @brief Direction of iteration through sequence dimension

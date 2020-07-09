@@ -130,19 +130,38 @@ void FrontEnd::parseRNN(const Model& model, const ie::CNNLayerPtr& _layer, const
     Data weights, biases;
     std::tie(weights, biases) = getWeightsAndBiases(model, layer);
 
+    // layer->stride = model->attrs().get<int>("stride");
+    // layer->start = model->attrs().get<int>("start");
+    // layer->axis = model->attrs().get<int>("axis");
+    // layer->end = model->attrs().get<int>("end");
+
     size_t nCells = 0;
     size_t nBatches = 0;
     size_t inputSize = inputs[0]->desc().dim(Dim::W);
 
+    // int stride = attrs().get<int>("stride");
+    // int start = attrs().get<int>("start");
+    // int axis = attrs().get<int>("axis");
+    // int end = attrs().get<int>("end");
+
+    // layer->stride = stride;
+    // layer->start = start;
+    // layer->axis = axis;
+    // layer->end = end;
+
+    // std::cout<< layer->end << "   " << layer->start << "   " << layer->stride << "\n";
+
+    std::cout<< layer->axis  << "\n";
+
     if (layer->axis == 1) {
-        nCells = inputs[0]->desc().dim(Dim::H);
+        nCells   = inputs[0]->desc().dim(Dim::H);
         nBatches = inputs[0]->desc().dim(Dim::C);
     } else if (layer->axis == 0) {
-        nCells = inputs[0]->desc().dim(Dim::C);
+        nCells   = inputs[0]->desc().dim(Dim::C);
         nBatches = inputs[0]->desc().dim(Dim::H);
     } else if (layer->axis == 2) {
-        nCells = inputs[0]->desc().dim(Dim::W);
-        nBatches = inputs[0]->desc().dim(Dim::C);
+        nCells    = inputs[0]->desc().dim(Dim::W);
+        nBatches  = inputs[0]->desc().dim(Dim::C);
         inputSize = inputs[0]->desc().dim(Dim::H);
     }
 
@@ -163,7 +182,7 @@ void FrontEnd::parseRNN(const Model& model, const ie::CNNLayerPtr& _layer, const
     IE_ASSERT(stateSize * ngates == biasesSize);
 
     /* weights repacking */
-    const auto generator = [&weights, stateSize, inputSize, ngates, outputs](const ie::Blob::Ptr& blob) {
+    const auto generator = [&weights, stateSize, inputSize, ngates, outputs, layer](const ie::Blob::Ptr& blob) {
         auto newWeightsPtr = blob->buffer().as<fp16_t*>();
 
         auto content = weights->content();
@@ -176,7 +195,7 @@ void FrontEnd::parseRNN(const Model& model, const ie::CNNLayerPtr& _layer, const
             origWeights,
 
             newWeightsPtr,
-            newWeightsPtr + ngates * stateSize * inputSize,
+            newWeightsPtr + ngates * stateSize * inputSize,  // * (layer->end - layer->start) - layer->stride,
 
             ngates,
             stateSize,
