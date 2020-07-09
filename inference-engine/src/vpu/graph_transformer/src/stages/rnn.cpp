@@ -226,7 +226,7 @@ void FrontEnd::parseRNN(const Model& model, const ie::CNNLayerPtr& _layer, const
 
 void FrontEnd::parseLSTMCell(const Model& model, const ie::CNNLayerPtr& _layer, const DataVector &inputs, const DataVector &outputs) {
     IE_ASSERT(inputs.size() == 3);
-    IE_ASSERT(outputs.size() == 2);
+    IE_ASSERT(outputs.size() <= 3);
 
     const int ngates = 4;
 

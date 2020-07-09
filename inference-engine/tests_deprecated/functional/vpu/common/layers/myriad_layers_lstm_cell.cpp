@@ -9,6 +9,7 @@ TEST_F(myriadLayersTests_nightly, LSTMCellSequenceNet) {
     const size_t state_size = 128;
     const size_t seq_size = 2;
     const size_t batch_size = 4;
+    int output_num = 3;
 
     size_t num_weights = ngates * state_size * (input_size + state_size);
     size_t num_bias = ngates * state_size;
@@ -37,8 +38,14 @@ TEST_F(myriadLayersTests_nightly, LSTMCellSequenceNet) {
     }
 
     InferenceEngine::Core ie;
-    auto full_network = ie.ReadNetwork(tensorIteratorModel, weightsBlob_for_net);
-    full_network.addOutput("RNNOutput", 0);
+    auto full_network = ie.ReadNetwork(tensorIteratorModel_3, weightsBlob_for_net);
+    if (output_num == 3) {
+        full_network.addOutput("lstm_fused_cell/BlockLSTM/TensorIterator", 0);
+        full_network.addOutput("lstm_fused_cell/BlockLSTM/TensorIterator", 1);
+        full_network.addOutput("lstm_fused_cell/BlockLSTM/TensorIterator", 2);
+    } else {
+        full_network.addOutput("RNNOutput", 0);
+    }
 
     InferenceEngine::InputsDataMap networkInputsFull;
     networkInputsFull = full_network.getInputsInfo();
@@ -49,6 +56,10 @@ TEST_F(myriadLayersTests_nightly, LSTMCellSequenceNet) {
     (++networkInputsFull.begin())->second->setPrecision(InferenceEngine::Precision::FP16);
     (++++networkInputsFull.begin())->second->setPrecision(InferenceEngine::Precision::FP16);
     networkOutputsFull.begin()->second->setPrecision(InferenceEngine::Precision::FP16);
+    if (output_num == 3) {
+        (++networkOutputsFull.begin())->second->setPrecision(InferenceEngine::Precision::FP16);
+        (++networkOutputsFull.begin())->second->setPrecision(InferenceEngine::Precision::FP16);
+    }
 
     InferenceEngine::IExecutableNetwork::Ptr exeNetworkFull;
     std::map<std::string, std::string> networkConfig;
@@ -60,15 +71,28 @@ TEST_F(myriadLayersTests_nightly, LSTMCellSequenceNet) {
     ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
 
     InferenceEngine::Blob::Ptr inputBlob;
-    ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput", inputBlob, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
-
     InferenceEngine::Blob::Ptr inputBlobHidden;
-    ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput_Hidden", inputBlobHidden, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
     InferenceEngine::Blob::Ptr inputBlobCellState;
-    ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput_CellState", inputBlobCellState, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+
+    if (output_num == 1) {
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput", inputBlob, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput_Hidden", inputBlobHidden, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNInput_CellState", inputBlobCellState, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+    } else if (output_num == 3) {
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("previous_input/read/placeholder_port_0", inputBlob, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("previous_state_h/read/placeholder_port_0", inputBlobHidden, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("previous_state_c/read/placeholder_port_0", inputBlobCellState, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+    }
 
     /* input tensors generating */
     ie_fp16 *src_data_cell_state = static_cast<ie_fp16*>(inputBlobCellState->buffer());
@@ -156,20 +180,33 @@ TEST_F(myriadLayersTests_nightly, LSTMCellSequenceNet) {
         }
     }
 
-    ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput_Hidden", inputBlobHidden, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
-    ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput_CellState", inputBlobCellState, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
-    ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput", inputBlob, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+    if (output_num == 1) {
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput_Hidden", inputBlobHidden, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput_CellState", inputBlobCellState, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("RNNInput", inputBlob, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
 
-    ASSERT_NO_THROW(st = inferRequest->Infer(&_resp));
+        ASSERT_NO_THROW(st = inferRequest->Infer(&_resp));
 
-    InferenceEngine::Blob::Ptr output;
-    ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNOutput", output, &_resp));
-    ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        InferenceEngine::Blob::Ptr output;
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("RNNOutput", output, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        CompareCommonAbsolute(output, refOut0, ERROR_BOUND);
+    } else if (output_num == 3) {
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("previous_state_h/read/placeholder_port_0", inputBlobHidden, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("previous_state_c/read/placeholder_port_0", inputBlobCellState, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
+        ASSERT_NO_THROW(st = inferRequest->SetBlob("previous_input/read/placeholder_port_0", inputBlob, &_resp));
+        ASSERT_EQ(StatusCode::OK, st) << _resp.msg;
 
-    CompareCommonAbsolute(output, refOut0, ERROR_BOUND);
+        ASSERT_NO_THROW(st = inferRequest->Infer(&_resp));
+
+        InferenceEngine::Blob::Ptr output;
+        ASSERT_NO_THROW(st = inferRequest->GetBlob("lstm_fused_cell/BlockLSTM/TensorIterator", output, &_resp));
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(accuracy, myriadLayersTestsLSTMCell_smoke,
