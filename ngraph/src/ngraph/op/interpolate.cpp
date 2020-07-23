@@ -258,3 +258,159 @@ namespace ngraph
         return true;
     }
 }
+
+// Interpolate v4
+
+constexpr NodeTypeInfo op::v4::Interpolate::type_info;
+
+op::v4::Interpolate::Interpolate(const Output<Node>& image,
+                                 const Output<Node>& output_shape,
+                                 const op::v4::Interpolate::InterpolateAttrs& attrs)
+    : Op({image, output_shape})
+    , m_attrs(attrs)
+{
+    constructor_validate_and_infer_types();
+}
+
+// op::v4::Interpolate::Interpolate(const Output<Node>& image,
+//                                  const Output<Node>& output_shape,
+//                                  const Output<Node>& axes,
+//                                  const op::v4::Interpolate::InterpolateAttrs& attrs)
+//     : Op({image, output_shape, axes})
+//     , m_attrs(attrs)
+// {
+//     constructor_validate_and_infer_types();
+// }
+
+bool op::v4::Interpolate::visit_attributes(AttributeVisitor& visitor)
+{
+    visitor.on_attribute("attrs", m_attrs);
+    return true;
+}
+
+void op::v4::Interpolate::validate_and_infer_types()
+{
+    NODE_VALIDATION_CHECK(this,
+                          get_input_element_type(1).is_integral_number(),
+                          "output shape must be an integral number.");
+    set_input_is_relevant_to_shape(1);
+
+    PartialShape output_shape = PartialShape(get_input_partial_shape(0));
+    if (output_shape.rank().is_static())
+    {
+        for (auto axis : m_attrs.axes)
+        {
+            NGRAPH_CHECK(axis < output_shape.rank().get_length());
+            output_shape[axis] = Dimension::dynamic();
+        }
+    }
+
+    if (auto const_shape = as_type_ptr<op::Constant>(input_value(1).get_node_shared_ptr()))
+    {
+        auto out_shape = const_shape->cast_vector<int64_t>();
+        size_t i = 0;
+        for (auto axis : m_attrs.axes)
+        {
+            output_shape[axis] = Dimension(out_shape[i++]);
+        }
+    }
+    set_output_type(0, get_input_element_type(0), output_shape);
+}
+
+shared_ptr<Node> op::v4::Interpolate::clone_with_new_inputs(const OutputVector& new_args) const
+{
+    check_new_args_count(this, new_args);
+    return make_shared<op::v4::Interpolate>(new_args.at(0), new_args.at(1), m_attrs);
+}
+
+namespace ngraph
+{
+    template <>
+    NGRAPH_API EnumNames<op::v4::Interpolate::InterpolateMode>&
+        EnumNames<op::v4::Interpolate::InterpolateMode>::get()
+    {
+        static auto enum_names = EnumNames<op::v4::Interpolate::InterpolateMode>(
+            "op::v4::Interpolate::InterpolateMode",
+            {{"nearest", op::v4::Interpolate::InterpolateMode::nearest},
+             {"linear", op::v4::Interpolate::InterpolateMode::linear},
+             {"linear_onnx", op::v4::Interpolate::InterpolateMode::linear_onnx},
+             {"cubic", op::v4::Interpolate::InterpolateMode::cubic},
+             {"area", op::v4::Interpolate::InterpolateMode::area}});
+        return enum_names;
+    }
+
+    constexpr DiscreteTypeInfo AttributeAdapter<op::v4::Interpolate::InterpolateMode>::type_info;
+
+    std::ostream& operator<<(std::ostream& s, const op::v4::Interpolate::InterpolateMode& type)
+    {
+        return s << as_string(type);
+    }
+
+    template <>
+    EnumNames<op::v4::Interpolate::CoordinateTransformMode>&
+        EnumNames<op::v4::Interpolate::CoordinateTransformMode>::get()
+    {
+        static auto enum_names = EnumNames<op::v4::Interpolate::CoordinateTransformMode>(
+            "op::v4::Interpolate::CoordinateTransformMode",
+            {{"half_pixel", op::v4::Interpolate::CoordinateTransformMode::half_pixel},
+             {"pytorch_half_pixel",
+              op::v4::Interpolate::CoordinateTransformMode::pytorch_half_pixel},
+             {"asymmetric", op::v4::Interpolate::CoordinateTransformMode::asymmetric},
+             {"tf_half_pixel_for_nn",
+              op::v4::Interpolate::CoordinateTransformMode::tf_half_pixel_for_nn},
+             {"align_corners", op::v4::Interpolate::CoordinateTransformMode::align_corners}});
+        return enum_names;
+    }
+
+    constexpr DiscreteTypeInfo
+        AttributeAdapter<op::v4::Interpolate::CoordinateTransformMode>::type_info;
+
+    std::ostream& operator<<(std::ostream& s,
+                             const op::v4::Interpolate::CoordinateTransformMode& type)
+    {
+        return s << as_string(type);
+    }
+
+    template <>
+    EnumNames<op::v4::Interpolate::NearestMode>& EnumNames<op::v4::Interpolate::NearestMode>::get()
+    {
+        static auto enum_names = EnumNames<op::v4::Interpolate::NearestMode>(
+            "op::v4::Interpolate::NearestMode",
+            {{"round_prefer_floor", op::v4::Interpolate::NearestMode::round_prefer_floor},
+             {"round_prefer_ceil", op::v4::Interpolate::NearestMode::round_prefer_ceil},
+             {"floor", op::v4::Interpolate::NearestMode::floor},
+             {"ceil", op::v4::Interpolate::NearestMode::ceil},
+             {"simple", op::v4::Interpolate::NearestMode::simple}});
+        return enum_names;
+    }
+
+    constexpr DiscreteTypeInfo AttributeAdapter<op::v4::Interpolate::NearestMode>::type_info;
+
+    std::ostream& operator<<(std::ostream& s, const op::v4::Interpolate::NearestMode& type)
+    {
+        return s << as_string(type);
+    }
+
+    constexpr DiscreteTypeInfo AttributeAdapter<op::v4::Interpolate::InterpolateAttrs>::type_info;
+
+    AttributeAdapter<op::v4::Interpolate::InterpolateAttrs>::AttributeAdapter(
+        op::v4::Interpolate::InterpolateAttrs& ref)
+        : m_ref(ref)
+    {
+    }
+
+    bool AttributeAdapter<op::v4::Interpolate::InterpolateAttrs>::visit_attributes(
+        AttributeVisitor& visitor)
+    {
+        visitor.on_attribute("axes", m_ref.axes);
+        visitor.on_attribute("mode", m_ref.mode);
+        visitor.on_attribute("coordinate_transformation_mode",
+                             m_ref.coordinate_transformation_mode);
+        visitor.on_attribute("nearest_mode", m_ref.nearest_mode);
+        visitor.on_attribute("antialias", m_ref.antialias);
+        visitor.on_attribute("pads_begin", m_ref.pads_begin);
+        visitor.on_attribute("pads_end", m_ref.pads_end);
+        visitor.on_attribute("cube_coeff", m_ref.cube_coeff);
+        return true;
+    }
+}
