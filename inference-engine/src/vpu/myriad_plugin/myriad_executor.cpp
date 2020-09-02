@@ -266,17 +266,6 @@ DevicePtr MyriadExecutor::openDevice(std::vector<DevicePtr>& devicePool,
             device._protocol = config.protocol();
             return std::make_shared<DeviceDesc>(device);
         }
-        //  else if (availableDevices.empty()) {
-        //     THROW_IE_EXCEPTION << "Can not init Myriad device: " << ncStatusToStr(nullptr, booted);
-
-        //     DeviceDesc device;
-        //     device._platform = config.platform();
-        //     device._protocol = config.protocol();
-
-        //     std::cout<<"platform : "<< device._platform << "\n";
-
-        //     return std::make_shared<DeviceDesc>(device);
-        // }
 
         auto deviceWithMinExecutors = std::min_element(availableDevices.begin(), availableDevices.end(),
             [](const DevicePtr &lhs, const DevicePtr &rhs) { return lhs->_graphNum < rhs->_graphNum; });
