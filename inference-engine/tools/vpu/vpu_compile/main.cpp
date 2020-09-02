@@ -107,9 +107,9 @@ static bool parseCommandLine(int *argc, char ***argv) {
 static std::map<std::string, std::string> configure(const std::string &configFile, const std::string &xmlFileName) {
     auto config = parseConfig(configFile);
 
-    if (!FLAGS_VPU_MYRIAD_PLATFORM.empty()) {
-        config[VPU_MYRIAD_CONFIG_KEY(PLATFORM)] = FLAGS_VPU_MYRIAD_PLATFORM;
-    }
+    // if (!FLAGS_VPU_MYRIAD_PLATFORM.empty()) {
+    //     config[VPU_MYRIAD_CONFIG_KEY(PLATFORM)] = FLAGS_VPU_MYRIAD_PLATFORM;
+    // }
 
     if (!FLAGS_VPU_NUMBER_OF_SHAVES.empty()) {
         config[VPU_CONFIG_KEY(NUMBER_OF_SHAVES)] = FLAGS_VPU_NUMBER_OF_SHAVES;
