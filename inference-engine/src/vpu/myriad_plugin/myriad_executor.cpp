@@ -213,7 +213,7 @@ ncStatus_t MyriadExecutor::bootNextDevice(std::vector<DevicePtr> &devicePool,
 
 DevicePtr MyriadExecutor::openDevice(std::vector<DevicePtr>& devicePool,
                                      const MyriadConfig& config) {
-    VPU_PROFILE(openDevice);
+    // VPU_PROFILE(openDevice);
     std::lock_guard<std::mutex> lock(device_mutex);
 
     auto firstBootedButEmptyDevice = std::find_if(devicePool.begin(), devicePool.end(),
@@ -260,11 +260,13 @@ DevicePtr MyriadExecutor::openDevice(std::vector<DevicePtr>& devicePool,
             });
 
         // Return mock device. If try infer with it, exception will be thrown
-        if (availableDevices.empty()) {
+        if (availableDevices.empty() && config.platform() != NC_ANY_PLATFORM) {
             DeviceDesc device;
             device._platform = config.platform();
             device._protocol = config.protocol();
             return std::make_shared<DeviceDesc>(device);
+        } else if (availableDevices.empty()) {
+            THROW_IE_EXCEPTION << "Can not init Myriad device: " << ncStatusToStr(nullptr, booted);
         }
 
         auto deviceWithMinExecutors = std::min_element(availableDevices.begin(), availableDevices.end(),

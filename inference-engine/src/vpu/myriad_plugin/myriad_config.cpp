@@ -17,18 +17,15 @@ namespace vpu {
 namespace MyriadPlugin {
 
 const std::unordered_set<std::string>& MyriadConfig::getCompileOptions() const {
-IE_SUPPRESS_DEPRECATED_START
     static const std::unordered_set<std::string> options = merge(ParsedConfig::getCompileOptions(), {
         VPU_MYRIAD_CONFIG_KEY(PLATFORM),
         VPU_CONFIG_KEY(PLATFORM),
     });
-IE_SUPPRESS_DEPRECATED_END
 
     return options;
 }
 
 const std::unordered_set<std::string>& MyriadConfig::getRunTimeOptions() const {
-IE_SUPPRESS_DEPRECATED_START
     static const std::unordered_set<std::string> options = merge(ParsedConfig::getRunTimeOptions(), {
         CONFIG_KEY(DEVICE_ID),
 
@@ -45,18 +42,15 @@ IE_SUPPRESS_DEPRECATED_START
         VPU_MYRIAD_CONFIG_KEY(PLUGIN_LOG_FILE_PATH),
         VPU_MYRIAD_CONFIG_KEY(DEVICE_CONNECT_TIMEOUT),
     });
-IE_SUPPRESS_DEPRECATED_END
 
     return options;
 }
 
 const std::unordered_set<std::string>& MyriadConfig::getDeprecatedOptions() const {
-IE_SUPPRESS_DEPRECATED_START
     static const std::unordered_set<std::string> options = merge(ParsedConfig::getDeprecatedOptions(), {
         VPU_CONFIG_KEY(FORCE_RESET),
         VPU_CONFIG_KEY(PLATFORM),
     });
-IE_SUPPRESS_DEPRECATED_END
 
     return options;
 }
@@ -68,13 +62,11 @@ void MyriadConfig::parse(const std::map<std::string, std::string>& config) {
         { std::string(),                   NC_ANY_PLATFORM }
     };
 
-IE_SUPPRESS_DEPRECATED_START
     static const std::unordered_map<std::string, ncDevicePlatform_t> platformsDepr = {
         { VPU_CONFIG_VALUE(2450), NC_MYRIAD_2 },
         { VPU_CONFIG_VALUE(2480), NC_MYRIAD_X },
         { std::string(),          NC_ANY_PLATFORM }
     };
-IE_SUPPRESS_DEPRECATED_END
 
     static const std::unordered_map<std::string, ncDeviceProtocol_t> protocols = {
         { VPU_MYRIAD_CONFIG_VALUE(USB),     NC_USB},
@@ -106,10 +98,8 @@ IE_SUPPRESS_DEPRECATED_END
     setOption(_deviceConnectTimeout, config, VPU_MYRIAD_CONFIG_KEY(DEVICE_CONNECT_TIMEOUT), parseSeconds);
     setOption(_powerConfig, powerConfigs, config, VPU_MYRIAD_CONFIG_KEY(POWER_MANAGEMENT));
 
-IE_SUPPRESS_DEPRECATED_START
     setOption(_forceReset, switches, config, VPU_CONFIG_KEY(FORCE_RESET));
     setOption(_platform, platformsDepr, config, VPU_CONFIG_KEY(PLATFORM));
-IE_SUPPRESS_DEPRECATED_END
 
 #ifndef NDEBUG
     if (const auto envVar = std::getenv("IE_VPU_MYRIAD_PLUGIN_LOG_FILE_PATH")) {
