@@ -145,10 +145,6 @@ static std::map<std::string, std::string> configure(const std::string &configFil
     auto config = parseConfig(configFile);
 
     if (std::string::npos != FLAGS_d.find("MYRIAD")) {
-IE_SUPPRESS_DEPRECATED_START
-        config[VPU_MYRIAD_CONFIG_KEY(PLATFORM)] = "VPU_MYRIAD_2480";
-IE_SUPPRESS_DEPRECATED_END
-
         if (!FLAGS_VPU_NUMBER_OF_SHAVES.empty()) {
             config[InferenceEngine::MYRIAD_NUMBER_OF_SHAVES] = FLAGS_VPU_NUMBER_OF_SHAVES;
         }
