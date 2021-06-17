@@ -31,6 +31,37 @@ void FrontEnd::addDataTypeConvertStages(const Model& model) {
         VPU_LOGGER_SECTION(env.log);
 
         switch (input->desc().type()) {
+            case DataType::FP16: {
+                if (hasScaleBias) {
+                    env.log->trace("Apply deprecated scale/bias parameters");
+
+                    std::ostringstream postfix;
+                    if (env.config.compileConfig().inputScale != 1.0f) {
+                        postfix << "@SCALE=" << InferenceEngine::CNNLayer::ie_serialize_float(env.config.compileConfig().inputScale);
+                    }
+                    if (env.config.compileConfig().inputBias != 0.0f) {
+                        postfix << "@BIAS=" << InferenceEngine::CNNLayer::ie_serialize_float(env.config.compileConfig().inputBias);
+                    }
+
+                    const auto scaledInput = model->duplicateData(
+                            input,
+                            postfix.str());
+
+                    bindData(scaledInput, input->origOutput(), input->origNode());
+
+                    _stageBuilder->addPowerStage(
+                            model,
+                            scaledInput->name(),
+                            nullptr,
+                            env.config.compileConfig().inputScale,
+                            1.0f,
+                            env.config.compileConfig().inputBias,
+                            input,
+                            scaledInput);
+                }
+                break;
+            }
+
             case DataType::U8:
             case DataType::FP32: {
                 env.log->trace("Convert to FP16");
@@ -45,7 +76,7 @@ void FrontEnd::addDataTypeConvertStages(const Model& model) {
 
                 input->attrs().set<Data>("fp16_copy", inputFP16);
 
-                bindData(inputFP16, input->origData());
+                bindData(inputFP16, input->origOutput(), input->origNode());
 
                 for (const auto consumerEdge : input->consumerEdges()) {
                     model->replaceStageInput(consumerEdge, inputFP16);
@@ -95,7 +126,7 @@ void FrontEnd::addDataTypeConvertStages(const Model& model) {
 
         output->attrs().set<Data>("fp16_copy", outputFP16);
 
-        bindData(outputFP16, output->origData());
+        bindData(outputFP16, output->origOutput(), output->origNode());
 
         if (const auto producerEdge = output->producerEdge()) {
             model->replaceStageOutput(producerEdge, outputFP16);
@@ -109,8 +140,11 @@ void FrontEnd::addDataTypeConvertStages(const Model& model) {
 
         const auto withDetectionOutput = model->attrs().getOrDefault<bool>("withDetectionOutput", false);
         stage->attrs().set<bool>("convertFromDetOutput", withDetectionOutput);
-
-        const auto haveBatch = model->batchSize() != 1 && _unbatchedOutputs.count(output->origData()) == 0;
+        auto outputName = output->origNode()->get_friendly_name();
+        auto unbatchedOutputIt = std::find_if(_unbatchedOutputs.begin(), _unbatchedOutputs.end(), [&outputName](ie::DataPtr ieData) {
+            return ieData->getName() == outputName;
+        });
+        const auto haveBatch = model->batchSize() != 1 && unbatchedOutputIt == _unbatchedOutputs.end();
         stage->attrs().set<bool>("haveBatch", haveBatch);
     }
 }
