@@ -60,13 +60,13 @@
 //     return std::any_of(rules.begin(), rules.end(), [&data, &tensorIterator](const PortMap& rule) { return tensorIterator->body.inputs[rule.to] == data; });
 // }
 
-// bool isConst(const ie::CNNLayerPtr& layer) {
-//     return layer->type == "Const" && layer->outData.size() == 1 && layer->blobs.size() == 1;
+// bool isConst(const NodePtr& layer) {
+//     return layer->get_type_name() == "Const" && layer->get_output_size() == 1;
 // }
 
 // bool isConst(const ie::DataPtr& data) {
 //     const auto creator = getCreatorLayer(data).lock();
-//     return creator != nullptr && isConst(creator);
+//     return creator != nullptr;// && isConst(ngraph::as_type_ptr<ngraph::opset6::TensorIterator>(data));
 // }
 
 // bool isFakeHolder(const ie::DataPtr& data) {
@@ -254,8 +254,9 @@
 //             loopStartInputs.push_back(loopStartInput);
 //             loopStartOutputs.push_back(loopStartOutput);
 
-//             for (const auto& data : backedgeInputs) {
-//                 bindData(loopStartOutput, data);
+//             for (int i = 0; i < backedgeInputs.size(); i++) {
+//                 const auto& data = backedgeInputs[i];
+//                 bindData(getVpuData(data), layer->output(i), layer);
 //             }
 //         }
 
@@ -304,8 +305,12 @@
 //             loopStartInputs.push_back(loopStartInput);
 //             loopStartOutputs.push_back(loopStartOutput);
 
-//             for (const auto& data : iterationInputs) {
-//                 bindData(loopStartOutput, data);
+//             // for (const auto& data : iterationInputs) {
+//             //     bindData(loopStartOutput, data);
+//             // }
+//             for (int i = 0; i < iterationInputs.size(); i++) {
+//                 const auto& data = iterationInputs[i];
+//                 bindData(getVpuData(data), layer->output(i), layer);
 //             }
 //         }
 
@@ -324,7 +329,7 @@
 //             VPU_THROW_UNLESS(getVpuData(intermediateDataInput) == nullptr, "Tensor Iterator's body input data objects were not parsed yet");
 
 //             const auto& loopStartOutput = createData(intermediateDataInput);
-//             bindData(loopStartOutput, intermediateDataInput);
+//             bindData(loopStartOutput, intermediateDataInput, layer);
 
 //             // to introduce shared data allocation edge later in Middle-End
 //             loopStartInput->attrs().set<Data>("start-shared-allocation", loopStartOutput);
@@ -332,8 +337,12 @@
 //             loopStartInputs.push_back(loopStartInput);
 //             loopStartOutputs.push_back(loopStartOutput);
 
-//             for (const auto& data : intermediateDataInputs) {
-//                 bindData(loopStartOutput, data);
+//             // for (const auto& data : intermediateDataInputs) {
+//             //     bindData(loopStartOutput, data);
+//             // }
+//             for (int i = 0; i < intermediateDataInputs.size(); i++) {
+//                 const auto& data = intermediateDataInputs[i];
+//                 bindData(getVpuData(data), layer->output(i), layer);
 //             }
 //         }
 
@@ -409,7 +418,7 @@
 //                     "Body's output with no corresponding Tensor Iterator's output data object cannot be iterable component");
 
 //                 auto loopEndInput = createData(bodyOutput);
-//                 bindData(loopEndInput, bodyOutput);
+//                 bindData(loopEndInput, bodyOutput, layer);
 //                 loopEndInputs.push_back(loopEndInput);
 //             } else {
 //                 const auto& tensorIteratorOutput = tensorIteratorOutputs.front();
@@ -455,7 +464,7 @@
 //             loopEndInputs.push_back(loopEndInput);
 //             loopEndOutputs.push_back(loopEndOutput);
 
-//             bindData(loopEndInput, iterationInput);
+//             bindData(loopEndInput, iterationInput, layer);
 //         }
 
 //         for (const auto& intermediateDataObject : intermediateDataObjects) {
@@ -481,7 +490,7 @@
 //             loopEndInputs.push_back(loopEndInput);
 //             loopEndOutputs.push_back(loopEndOutput);
 
-//             bindData(loopEndInput, intermediateDataInput);
+//             bindData(loopEndInput, intermediateDataInput, layer);
 //         }
 
 //         auto loopEnd = _stageBuilder->addLoopEndStage(model, tensorIterator->name + "@LoopEnd", loopEndInputs, loopEndOutputs);
@@ -538,13 +547,14 @@
 //             // output of a stage might be already parsed as Loop End's output
 //             if (output == nullptr) {
 //                 output = createData(data);
-//                 bindData(output, data);
+//                 bindData(output, data, layer);
 //             }
 
 //             stageOutputs.push_back(output);
 //         }
 
-//         parseLayer(model, bodyLayer, stageInputs, stageOutputs);
+//         // parseLayer(model, bodyLayer, stageInputs, stageOutputs);
+//         parseLayer(model, ngraph::as_type_ptr<ngraph::opset6::TensorIterator>(layer), stageInputs, stageOutputs);
 //     }
 // }
 

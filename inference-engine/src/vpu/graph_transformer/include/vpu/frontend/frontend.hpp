@@ -151,7 +151,7 @@ public:
     void parseScale(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const; // convert_mul_add_to_scaleshift_or_power.cpp ?? 
     void parsePermute(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;   // ok, test is not created 
     void parseDetectionOutput(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const; // ok; tests problems:  batch, decreaseLabelId, shareLocation
-    // void parseEltwise(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;
+    void parseEltwise(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;
     void parseSubtract(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok ok
     void parseAdd(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok ok
     void parseMultiply(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok ok
@@ -174,25 +174,25 @@ public:
     void parseSigmoid(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok, test is not created 
     void parseTanH(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok, test is not created
     void parsePReLU(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok, test is not created
-    // void parseBatchNorm(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok?
+    void parseBatchNorm(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok?
     void parseDeconvolution(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok
-    // void parseCopy(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
+    void parseCopy(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseELU(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const; // lgtm
     void parseCrop(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const; // strided slice? 
     void parseTile(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok 
     void parseNormalize(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const; // ok
     void parseRegionYolo(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseReorgYolo(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // not sure
-    // void parseBias(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // not sure
+    void parseBias(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // not sure
     void parseCTCDecoder(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
-    // void parseInterp(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to add fnct ngraph::interp::mode->vpu::mode
+    void parseInterp(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to add fnct ngraph::interp::mode->vpu::mode
     void parseClamp(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseProposal(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  //  not sure
     void parseROIPooling(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok; ok
     void parsePSROIPooling(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     // void parseMTCNN(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to remove?
     void parsePad(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  //  ok, test ok
-    // void parseResample(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // 
+    void parseResample(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // 
     void parseInterpolate(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok; ok 
     void parseRNN(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok; ok;
     void parseGEMM(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok; ok
@@ -227,7 +227,7 @@ public:
     void parseGelu(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseSoftPlus(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseSwish(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  //  ok
-    // void parseActivation(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to investigate
+    void parseActivation(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to investigate
     // void parseLogicalNot(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to investigate
     void parseGatherND(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseHSwish(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
@@ -254,7 +254,7 @@ public:
 
     // void parseCustom(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs); // ???
     void parseLSTMCell(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs);  // ok
-    // void parseTensorIterator(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs);  // ???
+    void parseTensorIterator(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs);  // ???
 
     //
     // Utility

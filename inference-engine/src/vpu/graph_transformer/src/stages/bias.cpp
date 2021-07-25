@@ -11,16 +11,16 @@
 
 namespace vpu {
 
-// void FrontEnd::parseBias(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
-    // IE_ASSERT(inputs.size() == 2);
-    // IE_ASSERT(outputs.size() == 1);
+void FrontEnd::parseBias(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
+    IE_ASSERT(inputs.size() == 2);
+    IE_ASSERT(outputs.size() == 1);
 
-    // auto input = inputs[0];
-    // auto biases = inputs[1];
-    // auto output = outputs[0];
+    auto input  = inputs[0];
+    auto biases = inputs[1];
+    auto output = outputs[0];
 
-    // _stageBuilder->addBiasStage(model, node->get_friendly_name(), node, input, biases, output);
-// }
+    _stageBuilder->addBiasStage(model, node->get_friendly_name(), node, input, biases, output);
+}
 
 namespace {
 class BiasStage final : public PostOpStage {

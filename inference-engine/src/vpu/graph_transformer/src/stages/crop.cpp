@@ -140,52 +140,55 @@ void FrontEnd::parseCrop(
         const NodePtr& node,
         const DataVector& inputs,
         const DataVector& outputs) const {
-    // const auto& crop = ngraph::as_type_ptr<ngraph::opset4::StridedSlice>(node);
-    // VPU_THROW_UNLESS(crop != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
-    // VPU_THROW_UNLESS(inputs.size() == 1 || inputs.size() == 2,
-    //                  "Crop: number of inputs must be 1 or 2, actually provided: %u", inputs.size());
-    // VPU_THROW_UNLESS(outputs.size() == 1,
-    //                  "Crop: number of outputs must be 1, actually provided: %u", outputs.size());
+    const auto& crop = ngraph::as_type_ptr<ngraph::opset4::StridedSlice>(node);
+    VPU_THROW_UNLESS(crop != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
+    VPU_THROW_UNLESS(inputs.size() == 1 || inputs.size() == 2,
+                     "Crop: number of inputs must be 1 or 2, actually provided: %u", inputs.size());
+    VPU_THROW_UNLESS(outputs.size() == 1,
+                     "Crop: number of outputs must be 1, actually provided: %u", outputs.size());
 
     // auto axisParam   = layer->GetParamAsInts("axis");
     // auto offsetParam = layer->GetParamAsInts("offset");
+    auto axisParam   = crop->get_new_axis_mask();
+    auto offsetParam = crop->get_ellipsis_mask();
+
     // VPU_THROW_UNLESS(axisParam.size() == offsetParam.size(),
     //                  "Crop: sizes of `axis` and `offset` must be equal");
 
-    // //
-    // // Parse offset attribute as DimValues
-    // //
+    //
+    // Parse offset attribute as DimValues
+    //
 
-    // DimValues offset;
-    // const auto ndims = inputs[0]->desc().numDims();
-    // const auto perm = DimsOrder::fromNumDims(ndims).toPermutation();
+    DimValues offset;
+    const auto ndims = inputs[0]->desc().numDims();
+    const auto perm = DimsOrder::fromNumDims(ndims).toPermutation();
 
-    // for (int i = 0; i < axisParam.size(); ++i) {
-    //     auto axisVal   = axisParam[i];
-    //     auto offsetVal = offsetParam[i];
+    for (int i = 0; i < axisParam.size(); ++i) {
+        auto axisVal   = axisParam[i];
+        auto offsetVal = offsetParam[i];
 
-    //     if (axisVal < 0) {
-    //         axisVal += ndims;
-    //     }
-    //     VPU_THROW_UNLESS(axisVal >= 0 && axisVal < ndims,
-    //                      "Layer %s [%s] has invalid axis value. "
-    //                      "Expected: 0 <= axis < %d, Actual: %d",
-    //                      layer->name, layer->type, ndims, axisVal);
+        if (axisVal < 0) {
+            axisVal += ndims;
+        }
+        // VPU_THROW_UNLESS(axisVal >= 0 && axisVal < ndims,
+        //                  "Layer %s [%s] has invalid axis value. "
+        //                  "Expected: 0 <= axis < %d, Actual: %d",
+        //                  layer->name, layer->type, ndims, axisVal);
 
-    //     offset.set(perm[ndims - 1 - axisVal], offsetVal);
-    // }
+        offset.set(perm[ndims - 1 - axisVal], offsetVal);
+    }
 
-    // VPU_THROW_UNLESS(offset.get(Dim::N, 0) == 0 || model->batchSize() == 1,
-    //                  "Crop: batch cropping is not supported");
+    VPU_THROW_UNLESS(offset.get(Dim::N, 0) == 0 || model->batchSize() == 1,
+                     "Crop: batch cropping is not supported");
 
-    // auto stage = model->addNewStage<CropStage>(
-    //         layer->name,
-    //         StageType::Crop,
-    //         layer,
-    //         inputs,
-    //         outputs);
+    auto stage = model->addNewStage<CropStage>(
+            crop->get_friendly_name(),
+            StageType::Crop,
+            crop,
+            inputs,
+            outputs);
 
-    // stage->attrs().set("offset", offset);
+    stage->attrs().set("offset", offset);
 }
 
 }  // namespace vpu

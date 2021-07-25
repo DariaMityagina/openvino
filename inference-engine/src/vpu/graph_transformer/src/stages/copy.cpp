@@ -13,12 +13,12 @@
 
 namespace vpu {
 
-// void FrontEnd::parseCopy(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
-//     IE_ASSERT(inputs.size() == 1);
-//     IE_ASSERT(outputs.size() == 1);
+void FrontEnd::parseCopy(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
+    IE_ASSERT(inputs.size() == 1);
+    IE_ASSERT(outputs.size() == 1);
 
-//     _stageBuilder->addCopyStage(model, node->get_friendly_name(), node, inputs[0], outputs[0], "parseCopy");
-// }
+    _stageBuilder->addCopyStage(model, node->get_friendly_name(), node, inputs[0], outputs[0], "parseCopy");
+}
 
 namespace {
 

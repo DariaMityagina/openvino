@@ -37,7 +37,7 @@ const auto numpyBroadcastParams1 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestNumpyBroadcast1,
+        YOY_smoke_TestNumpyBroadcast1,
         BroadcastLayerTest,
         numpyBroadcastParams1,
         BroadcastLayerTest::getTestCaseName
@@ -53,7 +53,7 @@ const auto numpyBroadcastParams2 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestNumpyBroadcast2,
+        YOY_smoke_TestNumpyBroadcast2,
         BroadcastLayerTest,
         numpyBroadcastParams2,
         BroadcastLayerTest::getTestCaseName
@@ -83,7 +83,7 @@ const auto bidirectionalBroadcastParams1 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestBidirectionalBroadcast1,
+        YOY_smoke_TestBidirectionalBroadcast1,
         BroadcastLayerTest,
         bidirectionalBroadcastParams1,
         BroadcastLayerTest::getTestCaseName
@@ -99,7 +99,7 @@ const auto bidirectionalBroadcastParams2 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestBidirectionalBroadcast2,
+        YOY_smoke_TestBidirectionalBroadcast2,
         BroadcastLayerTest,
         bidirectionalBroadcastParams2,
         BroadcastLayerTest::getTestCaseName
@@ -115,7 +115,7 @@ const auto bidirectionalBroadcastParams3 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestBidirectionalBroadcast3,
+        YOY_smoke_TestBidirectionalBroadcast3,
         BroadcastLayerTest,
         bidirectionalBroadcastParams3,
         BroadcastLayerTest::getTestCaseName
@@ -148,7 +148,7 @@ const auto explicitBroadcastParams1 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestExplicitBroadcast1,
+        YOY_smoke_TestExplicitBroadcast1,
         BroadcastLayerTest,
         explicitBroadcastParams1,
         BroadcastLayerTest::getTestCaseName
@@ -164,7 +164,7 @@ const auto explicitBroadcastParams2 = ::testing::Combine(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-        smoke_TestExplicitBroadcast2,
+        YOY_smoke_TestExplicitBroadcast2,
         BroadcastLayerTest,
         explicitBroadcastParams2,
         BroadcastLayerTest::getTestCaseName

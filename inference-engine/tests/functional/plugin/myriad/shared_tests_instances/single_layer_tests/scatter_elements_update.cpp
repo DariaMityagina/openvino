@@ -14,9 +14,9 @@ using namespace ngraph::opset3;
 namespace {
 // map<inputShape, map<indicesShape, axis>>
 std::map<std::vector<size_t>, std::map<std::vector<size_t>, std::vector<int>>> axesShapeInShape {
-    {{10, 12, 15}, {{{1, 2, 4}, {0, 1, 2}}, {{2, 2, 2}, {-1, -2, -3}}}},
-    {{15, 9, 8, 12}, {{{1, 2, 2, 2}, {0, 1, 2, 3}}, {{1, 2, 1, 4}, {-1, -2, -3, -4}}}},
-    {{9, 9, 8, 8, 11, 10}, {{{1, 2, 1, 2, 1, 2}, {5, -3}}}},
+    {{10, 12, 15}, {{{1, 2, 4}, {0, 1, 2}}, {{2, 2, 2}, {1, 2, 3}}}},
+    {{15, 9, 8, 12}, {{{1, 2, 2, 2}, {0, 1, 2, 3}}, {{1, 2, 1, 4}, {1, 2, 3, 4}}}},
+    {{9, 9, 8, 8, 11, 10}, {{{1, 2, 1, 2, 1, 2}, {5, 3}}}},
 };
 // index value should not be random data
 const std::vector<std::vector<size_t>> idxValue = {
@@ -42,7 +42,7 @@ const auto ScatterEltUpdateCases = ::testing::Combine(
         ::testing::Values(CommonTestUtils::DEVICE_MYRIAD)
 );
 
-INSTANTIATE_TEST_SUITE_P(smoke_ScatterEltsUpdate, ScatterElementsUpdateLayerTest,
+INSTANTIATE_TEST_SUITE_P(YOY_smoke_ScatterEltsUpdate, ScatterElementsUpdateLayerTest,
     ScatterEltUpdateCases, ScatterElementsUpdateLayerTest::getTestCaseName);
 
 }  // namespace
