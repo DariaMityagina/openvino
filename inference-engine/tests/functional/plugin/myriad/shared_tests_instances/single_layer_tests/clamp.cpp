@@ -30,8 +30,6 @@ const std::vector<std::pair<float, float>> intervals_unsigned = {
 const std::vector<InferenceEngine::Precision> netPrc = {
     InferenceEngine::Precision::FP32,
     InferenceEngine::Precision::FP16,
-    InferenceEngine::Precision::I64,
-    InferenceEngine::Precision::I32
 };
 
 const auto test_Clamp_signed = ::testing::Combine(

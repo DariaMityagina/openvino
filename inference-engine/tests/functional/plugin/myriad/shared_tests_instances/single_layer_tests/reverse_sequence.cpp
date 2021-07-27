@@ -14,10 +14,6 @@ namespace {
 const std::vector<InferenceEngine::Precision> netPrecisions = {
         InferenceEngine::Precision::FP32,
         InferenceEngine::Precision::FP16,
-        InferenceEngine::Precision::U8,
-        InferenceEngine::Precision::I8,
-        InferenceEngine::Precision::U16,
-        InferenceEngine::Precision::I32
 };
 
 const std::vector<int64_t> batchAxisIndices = { 0L };
@@ -30,10 +26,9 @@ const std::vector<std::vector<size_t>> reversSeqLengthsVecShapes = { {3} };
 
 const std::vector<ngraph::helpers::InputLayerType> secondaryInputTypes = {
         ngraph::helpers::InputLayerType::CONSTANT,
-        ngraph::helpers::InputLayerType::PARAMETER
 };
 
-INSTANTIATE_TEST_SUITE_P(YOY_Basic_smoke, ReverseSequenceLayerTest,
+INSTANTIATE_TEST_SUITE_P(YOY_Basic_smoke_Reverse, ReverseSequenceLayerTest,
                         ::testing::Combine(
                             ::testing::ValuesIn(batchAxisIndices),
                             ::testing::ValuesIn(seqAxisIndices),

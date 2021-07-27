@@ -14,8 +14,7 @@ using namespace ngraph::opset3;
 namespace {
 // map<inputShape, map<indicesShape, axis>>
 std::map<std::vector<size_t>, std::map<std::vector<size_t>, std::vector<int>>> axesShapeInShape {
-    {{10, 12, 15}, {{{1, 2, 4}, {0, 1, 2}}, {{2, 2, 2}, {1, 2, 3}}}},
-    {{15, 9, 8, 12}, {{{1, 2, 2, 2}, {0, 1, 2, 3}}, {{1, 2, 1, 4}, {1, 2, 3, 4}}}},
+    {{10, 12, 15}, {{{1, 2, 4}, {0, 1, 2}}, {{2, 2, 2}, {1, 2}}}},
     {{9, 9, 8, 8, 11, 10}, {{{1, 2, 1, 2, 1, 2}, {5, 3}}}},
 };
 // index value should not be random data
@@ -26,7 +25,6 @@ const std::vector<std::vector<size_t>> idxValue = {
 const std::vector<InferenceEngine::Precision> inputPrecisions = {
         InferenceEngine::Precision::FP32,
         InferenceEngine::Precision::FP16,
-        InferenceEngine::Precision::I32,
 };
 
 const std::vector<InferenceEngine::Precision> idxPrecisions = {
