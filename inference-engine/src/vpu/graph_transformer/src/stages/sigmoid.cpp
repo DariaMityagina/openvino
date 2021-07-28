@@ -32,7 +32,7 @@ private:
 void FrontEnd::parseSigmoid(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
     IE_ASSERT(inputs.size() == 1);
     IE_ASSERT(outputs.size() == 1);
-    auto sigmoid = ngraph::as_type_ptr<ngraph::opset4::Tanh>(node);
+    auto sigmoid = ngraph::as_type_ptr<ngraph::opset4::Sigmoid>(node);
     VPU_THROW_UNLESS(sigmoid != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
     _stageBuilder->addSigmoidStage(model, node->get_friendly_name(), node, inputs, outputs);
 }

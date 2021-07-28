@@ -30,7 +30,7 @@ private:
 void FrontEnd::parseSwish(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
     auto swish = ngraph::as_type_ptr<ngraph::op::v4::Swish>(node);
     VPU_THROW_UNLESS(swish != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
-    VPU_THROW_UNLESS((inputs.size() == 1),
+    VPU_THROW_UNLESS((inputs.size() == 2),
                      "Swish stage with name %s must have 1 input, "
                      "actually provided %d", swish->get_friendly_name(), inputs.size());
     VPU_THROW_UNLESS(outputs.size() == 1,

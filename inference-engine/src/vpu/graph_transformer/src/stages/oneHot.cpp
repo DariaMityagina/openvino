@@ -57,8 +57,8 @@ private:
     }
 
     void serializeDataImpl(BlobSerializer& serializer) const override {
-        IE_ASSERT(inputEdges().size() == 1);
-        IE_ASSERT(outputEdges().size() == 1);
+        // IE_ASSERT(inputEdges().size() == 1);
+        // IE_ASSERT(outputEdges().size() == 1);
 
         auto input = inputEdges()[0]->input();
         auto output = outputEdges()[0]->output();
@@ -73,8 +73,8 @@ private:
 void FrontEnd::parseOneHot(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
     auto oneHot = ngraph::as_type_ptr<ngraph::opset4::OneHot>(node);
     VPU_THROW_UNLESS(oneHot != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
-    IE_ASSERT(inputs.size() == 1);
-    IE_ASSERT(outputs.size() == 1);
+    // IE_ASSERT(inputs.size() == 1);
+    // IE_ASSERT(outputs.size() == 1);
 
     const auto depthNode = std::dynamic_pointer_cast<ngraph::opset1::Constant>(oneHot->input_value(1).get_node_shared_ptr());
     const auto onValueNode = std::dynamic_pointer_cast<ngraph::opset1::Constant>(oneHot->input_value(2).get_node_shared_ptr());
