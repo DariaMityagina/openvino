@@ -45,7 +45,7 @@ void FrontEnd::parseFullyConnected(const Model& model, const NodePtr& node, cons
         tryHW = false;
     }
 
-    if (env.config.compileConfig().hwDisabled(fc->get_friendly_name())) {
+    if (HwDisabled(env.config, node->get_friendly_name())) {
         tryHW = false;
     }
 

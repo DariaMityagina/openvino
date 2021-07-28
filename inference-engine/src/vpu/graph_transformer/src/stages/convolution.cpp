@@ -249,9 +249,9 @@ void parseConv2D(const Model             & model,
                           kernelStrideY,
                           dilationX,
                           dilationY,
-                          env.config.compileConfig().hwOptimization,
-                          env.config.compileConfig().hwDilation,
-                          env.config.compileConfig().hwDisabled(node->get_friendly_name()));
+                          env.config.get<HwAccelerationOption>(),
+                          env.config.get<HwDilationOption>(),
+                          HwDisabled(env.config, node->get_friendly_name()));
 
     //
     // Create const datas
@@ -566,9 +566,9 @@ void parseConvND(const Model             & model,
                           strides[1],
                           dilations[0],
                           dilations[1],
-                          env.config.compileConfig().hwOptimization,
-                          env.config.compileConfig().hwDilation,
-                          env.config.compileConfig().hwDisabled(node->get_friendly_name()));
+                          env.config.get<HwAccelerationOption>(),
+                          env.config.get<HwDilationOption>(),
+                          HwDisabled(env.config, node->get_friendly_name()));
 
     int try_hw = tryHW ? 1 : 0;
 

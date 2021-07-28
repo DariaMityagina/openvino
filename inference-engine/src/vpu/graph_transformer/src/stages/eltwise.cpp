@@ -319,6 +319,12 @@ void FrontEnd::parseLogicalNot(const Model& model, const NodePtr& node, const Da
     auto eltwiseOp = EltwiseOperation::Logical_NOT;
     parseEltwiseImpl(model, node, inputs, outputs, eltwiseOp);
 }
+void FrontEnd::parseAbs(const Model &model, const NodePtr& node, const DataVector &inputs, const DataVector &outputs) const {
+    auto subtract = ngraph::as_type_ptr<ngraph::opset1::Abs>(node);
+    VPU_THROW_UNLESS(subtract != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
+    auto eltwiseOp = EltwiseOperation::Abs;
+    parseEltwiseImpl(model, node, inputs, outputs, eltwiseOp);
+}
 void FrontEnd::parseLogicalAnd(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
     auto subtract = ngraph::as_type_ptr<ngraph::opset4::LogicalAnd>(node);
     VPU_THROW_UNLESS(subtract != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());

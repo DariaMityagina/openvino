@@ -50,6 +50,7 @@ enum EltwiseOperation {
     Logical_XOR,  
     Pow,          
     Floor_mod,    
+    Abs
 };
 enum PoolNDMethod   { PoolND_max = 1, PoolND_avg = 2 };
 
@@ -140,7 +141,7 @@ public:
     // SW only layers
     //
 
-    void parseAbs(const Model& model, const ie::CNNLayerPtr& layer, const DataVector& inputs, const DataVector& outputs) const;
+    void parseAbs(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;
     void parseReLU(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok test -
     void parseSoftMax(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok test +-?
     void parseGRN(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // ok ok
@@ -228,7 +229,6 @@ public:
     void parseSoftPlus(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseSwish(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  //  ok
     void parseActivation(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to investigate
-    // void parseLogicalNot(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // need to investigate
     void parseGatherND(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseHSwish(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm
     void parseCeiling(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const;  // lgtm

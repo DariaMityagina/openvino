@@ -149,7 +149,7 @@ void PassImpl::run(const Model& model) {
         auto output = stage->output(0);
         const auto& env = CompileEnv::get();
 
-        if (env.config.compileConfig().hwDisabled(stage->origNode()->get_friendly_name())) {
+        if (HwDisabled(env.config, stage->origNode()->get_friendly_name())) {
             continue;
         }
 

@@ -169,7 +169,7 @@ FrontEnd::FrontEnd(StageBuilder::Ptr stageBuilder, const std::shared_ptr<ie::ICo
         {"Gelu",                                               LAYER_PARSER(parseGelu)},
         {"SoftPlus",                                           LAYER_PARSER(parseSoftPlus)},
         {"Swish",                                              LAYER_PARSER(parseSwish)},
-        {"Activation",                                         LAYER_PARSER(parseActivation)},
+        // {"Activation",                                         LAYER_PARSER(parseActivation)},
         {"GatherND",                                           LAYER_PARSER(parseGatherND)},
         {"HSwish",                                             LAYER_PARSER(parseHSwish)},
         {"Ceiling",                                            LAYER_PARSER(parseCeiling)},
@@ -393,8 +393,9 @@ void FrontEnd::processTrivialCases(const Model& model) {
 void FrontEnd::defaultOnUnsupportedLayerCallback(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs,
                                                  const std::string& extraMessage) {
     const auto& env = CompileEnv::get();
-    VPU_THROW_UNSUPPORTED_LAYER_UNLESS(env.config.compileConfig().ignoreUnknownLayers, "Failed to compile node with name \"%v\" and type \"%v\" : %v",
-                                       node->get_friendly_name(), node->get_type_name(), extraMessage);
+    // VPU_THROW_UNSUPPORTED_LAYER_UNLESS(env.config.compileConfig().ignoreUnknownLayers, "Failed to compile node with name \"%v\" and type \"%v\" : %v",
+    //                                    node->get_friendly_name(), node->get_type_name(), extraMessage);
+    VPU_THROW_UNSUPPORTED_LAYER_UNLESS(env.config.get<IgnoreUnknownLayersOption>(), "Failed to compile layer \"%v\": %v", node->get_friendly_name(), extraMessage);
     _stageBuilder->addNoneStage(model, node->get_friendly_name(), node, inputs, outputs);
 }
 
@@ -521,11 +522,12 @@ ModelPtr FrontEnd::runCommonPasses(ie::CNNNetwork network,
 
         getInputAndOutputData(model, node, inputs, outputs);
 
-        if (env.config.compileConfig().skipAllLayers() || env.config.compileConfig().skipLayerType(node->get_type_name())) {
+        if (skipAllLayers(env.config) || skipLayerType(env.config, node->get_type_name())) {
             _stageBuilder->addNoneStage(model, node->get_friendly_name(), node, inputs, outputs);
             supportedLayer(node);
             continue;
         }
+
         std::cout << "Parse layer with name " << node->get_friendly_name() << " and type " << node->get_type_name() << std::endl;
         parseLayer(model, node, inputs, outputs, unsupportedLayer, supportedLayer);
     }
