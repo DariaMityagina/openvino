@@ -393,8 +393,13 @@ void FrontEnd::processTrivialCases(const Model& model) {
 void FrontEnd::defaultOnUnsupportedLayerCallback(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs,
                                                  const std::string& extraMessage) {
     const auto& env = CompileEnv::get();
-    // VPU_THROW_UNSUPPORTED_LAYER_UNLESS(env.config.compileConfig().ignoreUnknownLayers, "Failed to compile node with name \"%v\" and type \"%v\" : %v",
-    //                                    node->get_friendly_name(), node->get_type_name(), extraMessage);
+    printf("inputs = %d\n\n", inputs.size());
+    // for (int i = 0; i < inputs.size(); i++) {
+    //     // printf("inputs %d = %s\n\n", inputs.size(), inputs.at(i)->name());
+    //     printf("inputs %d", inputs.size());
+    //     std::cout<<inputs.at(i)->name()<<"\n\n";
+    //     printf("\n\n");
+    // }
     VPU_THROW_UNSUPPORTED_LAYER_UNLESS(env.config.get<IgnoreUnknownLayersOption>(), "Failed to compile layer \"%v\": %v", node->get_friendly_name(), extraMessage);
     _stageBuilder->addNoneStage(model, node->get_friendly_name(), node, inputs, outputs);
 }

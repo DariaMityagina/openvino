@@ -10,7 +10,7 @@
 using namespace LayerTestsDefinitions;
 
 namespace {
-    std::vector<bool> should_decompose{false, true};
+    std::vector<bool> should_decompose{true}; //, false};
     std::vector<size_t> batch{5};
     std::vector<size_t> hidden_size{1, 10};
     std::vector<size_t> input_size{1, 30};

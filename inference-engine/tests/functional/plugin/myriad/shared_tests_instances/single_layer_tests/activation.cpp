@@ -8,21 +8,35 @@
 
 using namespace LayerTestsDefinitions;
 using namespace ngraph::helpers;
+
 namespace {
+const std::vector<InferenceEngine::Precision> inputPrecisions = {
+        InferenceEngine::Precision::FP32
+};
 
 const std::vector<InferenceEngine::Precision> netPrecisions = {
         InferenceEngine::Precision::FP32,
         InferenceEngine::Precision::FP16
 };
 
+const std::vector<InferenceEngine::Precision> intPrecisions = {
+        InferenceEngine::Precision::I32,
+};
+
 const std::map<ActivationTypes, std::vector<std::vector<float>>> activationTypes = {
-        {Abs,                   {}},
         {Sigmoid,               {}},
         {Tanh,                  {}},
         {Relu,                  {}},
         {Exp,                   {}},
         {Log,                   {}},
-        {Gelu,                  {}},
+        {Abs,                   {}},
+        {Clamp,                 {{-2.0f, 2.0f}}},
+        {Negative,              {}},
+        {Floor,                 {}},
+        {Sqrt,                  {}},
+        {Elu,                   {{0.1f}}},
+        {Erf,                   {}},
+        {Ceiling,               {}},
         {Mish,                  {}},
         {HSwish,                {}},
         {SoftPlus,              {}},
@@ -32,19 +46,33 @@ const std::map<ActivationTypes, std::vector<std::vector<float>>> activationTypes
         {Erf,                   {}},
         {GeluErf,               {}},
         {GeluTanh,              {}},
-        {Swish,                 {{0.4f}}},
-        {Clamp,                 {{-2.0f, 2.0f}}},
+        {Swish,                 {{0.4f}}}
+};
+
+const std::map<ActivationTypes, std::vector<std::vector<float>>> intActivationTypes = {
         {Negative,              {}},
-        {Floor,                 {}},
-        {Sqrt,                  {}},
-        {Elu,                   {{0.1f}}},
-        {Erf,                   {}},
         {Ceiling,               {}},
+        {Sqrt,                  {}},
+};
+
+const std::map<ActivationTypes, std::vector<std::vector<float>>> activationParamTypes = {
+        {PReLu,                 {{}}},
 };
 
 std::map<std::vector<size_t>, std::vector<std::vector<size_t>>> basic = {
         {{1, 50}, {{}}},
         {{1, 128}, {{}}},
+};
+
+std::map<std::vector<size_t>, std::vector<std::vector<size_t>>> preluBasic = {
+        {{1, 50}, {{1}, {50}}},
+        {{1, 128}, {{1}, {128}}},
+
+        // Broadcast check
+        {{3, 2}, {{1}, {2}, {3, 2}}},
+        {{3, 2, 5}, {{1}, {2}, {5}, {2, 5}, {3, 1, 5}, {1, 2, 1}, {1, 1, 5}, {3, 1, 1}, {3, 2, 5}}},
+        {{2, 1, 2}, {{2}, {2, 1, 1}}},
+        {{3, 2, 5, 7}, {{1}, {7}, {2}, {5, 7}, {2, 5, 7}, {2, 1, 1}, {1, 2, 1, 1}, {3, 2, 1, 1}, {3, 2, 5, 7}}},
 };
 
 const auto basicCases = ::testing::Combine(
@@ -58,7 +86,32 @@ const auto basicCases = ::testing::Combine(
         ::testing::Values(CommonTestUtils::DEVICE_MYRIAD)
 );
 
+const auto basicPreluCases = ::testing::Combine(
+        ::testing::ValuesIn(CommonTestUtils::combineParams(activationParamTypes)),
+        ::testing::ValuesIn(netPrecisions),
+        ::testing::Values(InferenceEngine::Precision::UNSPECIFIED),
+        ::testing::Values(InferenceEngine::Precision::UNSPECIFIED),
+        ::testing::Values(InferenceEngine::Layout::ANY),
+        ::testing::Values(InferenceEngine::Layout::ANY),
+        ::testing::ValuesIn(CommonTestUtils::combineParams(preluBasic)),
+        ::testing::Values(CommonTestUtils::DEVICE_MYRIAD)
+);
+
+const auto basicIntegerOperations = ::testing::Combine(
+            ::testing::ValuesIn(CommonTestUtils::combineParams(intActivationTypes)),
+            ::testing::ValuesIn(intPrecisions),
+            ::testing::ValuesIn(intPrecisions),
+            ::testing::ValuesIn(intPrecisions),
+            ::testing::Values(InferenceEngine::Layout::ANY),
+            ::testing::Values(InferenceEngine::Layout::ANY),
+            ::testing::ValuesIn(CommonTestUtils::combineParams(basic)),
+            ::testing::Values(CommonTestUtils::DEVICE_MYRIAD)
+);
 
 INSTANTIATE_TEST_SUITE_P(smoke_Activation_Basic, ActivationLayerTest, basicCases, ActivationLayerTest::getTestCaseName);
+INSTANTIATE_TEST_SUITE_P(smoke_Activation_Basic, ActivationDynamicLayerTest, basicCases, ActivationLayerTest::getTestCaseName);
+INSTANTIATE_TEST_SUITE_P(smoke_Integer_Activation_Basic, ActivationLayerTest, basicIntegerOperations, ActivationLayerTest::getTestCaseName);
 
+INSTANTIATE_TEST_SUITE_P(smoke_Activation_Basic_Prelu_Const, ActivationLayerTest, basicPreluCases, ActivationLayerTest::getTestCaseName);
+INSTANTIATE_TEST_SUITE_P(smoke_Activation_Basic_Prelu_Param, ActivationParamLayerTest, basicPreluCases, ActivationLayerTest::getTestCaseName);
 }  // namespace

@@ -35,10 +35,12 @@ void FrontEnd::parsePReLU(const Model& model, const NodePtr& node, const DataVec
     
     const auto& prelu = ngraph::as_type_ptr<ngraph::opset4::PRelu>(node);
     VPU_THROW_UNLESS(prelu != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
-    // IE_ASSERT(inputs.size() == 1);
     IE_ASSERT(outputs.size() == 1);
-    auto inputNode = node->input_value(1).get_node_shared_ptr();
+    auto inputNode = node->get_input_node_shared_ptr(1);
     auto weightsBlob = shareWeights(inputNode);
+    if (const auto& constNode = std::dynamic_pointer_cast<ngraph::opset4::Constant>(inputNode)) {
+        weightsBlob = shareWeights(constNode);
+    }
 
     IE_ASSERT(weightsBlob != nullptr);
 

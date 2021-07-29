@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "myriad_layers_permute_test.hpp"
+#include <vector>
+#include "single_layer_tests/permute.hpp"
+#include "common_test_utils/test_constants.hpp"
 
 // INSTANTIATE_TEST_SUITE_P(accuracy, myriadLayersPermuteTests_smoke,
 //         ::testing::Combine(

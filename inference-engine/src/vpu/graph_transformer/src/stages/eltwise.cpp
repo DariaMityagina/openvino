@@ -265,6 +265,12 @@ void FrontEnd::parseDivide(const Model& model, const NodePtr& node, const DataVe
     auto eltwiseOp = EltwiseOperation::Div;
     parseEltwiseImpl(model, node, inputs, outputs, eltwiseOp);
 }
+void FrontEnd::parsePower(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
+    auto subtract = ngraph::as_type_ptr<ngraph::opset4::Power>(node);
+    VPU_THROW_UNLESS(subtract != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());
+    auto eltwiseOp = EltwiseOperation::Pow;
+    parseEltwiseImpl(model, node, inputs, outputs, eltwiseOp);
+}
 void FrontEnd::parseMinimum(const Model& model, const NodePtr& node, const DataVector& inputs, const DataVector& outputs) const {
     auto subtract = ngraph::as_type_ptr<ngraph::opset4::Minimum>(node);
     VPU_THROW_UNLESS(subtract != nullptr, "Can't parse node with name %s and type %s. Node is nullptr", node->get_friendly_name(), node->get_type_name());

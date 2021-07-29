@@ -40,7 +40,7 @@ const auto groupConv1DParams_AutoPadValid = ::testing::Combine(
     ::testing::Values(ngraph::op::PadType::VALID));
 
 INSTANTIATE_TEST_SUITE_P(
-    smoke_GroupConvolution1D_ExplicitPadding, GroupConvolutionLayerTest,
+    DISABLED_smoke_GroupConvolution1D_ExplicitPadding, GroupConvolutionLayerTest,
     ::testing::Combine(
         groupConv1DParams_ExplicitPadding, ::testing::ValuesIn(netPrecisions),
         ::testing::Values(InferenceEngine::Precision::FP16),
@@ -52,7 +52,7 @@ INSTANTIATE_TEST_SUITE_P(
     GroupConvolutionLayerTest::getTestCaseName);
 
 INSTANTIATE_TEST_SUITE_P(
-    smoke_GroupConvolution1D_AutoPadValid, GroupConvolutionLayerTest,
+    DISABLED_smoke_GroupConvolution1D_AutoPadValid, GroupConvolutionLayerTest,
     ::testing::Combine(
         groupConv1DParams_AutoPadValid, ::testing::ValuesIn(netPrecisions),
         ::testing::Values(InferenceEngine::Precision::FP16),
@@ -131,7 +131,7 @@ const auto groupConv3DParams_AutoPadValid = ::testing::Combine(
     ::testing::Values(2), ::testing::Values(ngraph::op::PadType::VALID));
 
 INSTANTIATE_TEST_SUITE_P(
-    smoke_GroupConvolution3D_ExplicitPadding, GroupConvolutionLayerTest,
+    DISABLED_smoke_GroupConvolution3D_ExplicitPadding, GroupConvolutionLayerTest,
     ::testing::Combine(
         groupConv3DParams_ExplicitPadding, ::testing::ValuesIn(netPrecisions),
         ::testing::Values(InferenceEngine::Precision::FP16),
@@ -143,7 +143,7 @@ INSTANTIATE_TEST_SUITE_P(
     GroupConvolutionLayerTest::getTestCaseName);
 
 INSTANTIATE_TEST_SUITE_P(
-    smoke_GroupConvolution3D_AutoPadValid, GroupConvolutionLayerTest,
+    DISABLED_smoke_GroupConvolution3D_AutoPadValid, GroupConvolutionLayerTest,
     ::testing::Combine(
         groupConv3DParams_AutoPadValid, ::testing::ValuesIn(netPrecisions),
         ::testing::Values(InferenceEngine::Precision::FP16),

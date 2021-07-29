@@ -291,8 +291,8 @@ void FrontEnd::parseLSTMCell(const Model& model, const NodePtr& node, const Data
     IE_ASSERT(inputSize == src.totalDimSize() / nBatches);
     IE_ASSERT(stateSize == cellStateSize);
 
-    // const std::size_t weightsSize = weights->desc().totalDimSize();
-    // IE_ASSERT(stateSize * (inputSize + stateSize) * ngates == weightsSize);
+    const std::size_t weightsSize = weights->desc().totalDimSize();
+    IE_ASSERT(stateSize * (inputSize + stateSize) * ngates == weightsSize);
 
     const auto generator = [&weights, stateSize, inputSize, ngates](const ie::Blob::Ptr& blob) {
         auto newWeightsPtr = blob->buffer().as<fp16_t*>();

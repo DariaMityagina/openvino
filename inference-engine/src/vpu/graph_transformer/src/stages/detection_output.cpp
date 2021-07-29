@@ -164,20 +164,21 @@ void FrontEnd::parseDetectionOutput(const Model& model, const NodePtr& node, con
     DetectionOutputParams detParams;
     const auto detectionOutputAttrs = detectionOutput->get_attrs();
     detParams.num_classes = detectionOutputAttrs.num_classes;
-    detParams.background_label_id = detectionOutputAttrs.background_label_id;
-    detParams.top_k = detectionOutputAttrs.top_k;
-    detParams.variance_encoded_in_target = detectionOutputAttrs.variance_encoded_in_target;
-    detParams.keep_top_k = detectionOutputAttrs.keep_top_k[0];  //  ???
+    detParams.background_label_id = (detectionOutputAttrs.background_label_id)? detectionOutputAttrs.background_label_id : 0;
+    detParams.top_k = (detectionOutputAttrs.top_k)? detectionOutputAttrs.top_k : 0;
+    detParams.variance_encoded_in_target = (detectionOutputAttrs.variance_encoded_in_target)? detectionOutputAttrs.variance_encoded_in_target : 0;
+    // detParams.keep_top_k = (detectionOutputAttrs.keep_top_k[0])? detectionOutputAttrs.keep_top_k[0] : -1;
+    detParams.keep_top_k = detectionOutputAttrs.keep_top_k[0];
     detParams.nms_threshold = detectionOutputAttrs.nms_threshold;
-    detParams.confidence_threshold = detectionOutputAttrs.confidence_threshold;
-    detParams.share_location = detectionOutputAttrs.share_location;
-    detParams.clip_before_nms = detectionOutputAttrs.clip_before_nms;
-    detParams.clip_after_nms = detectionOutputAttrs.clip_after_nms;
-    detParams.decrease_label_id = static_cast<int>(detectionOutputAttrs.decrease_label_id);
-    detParams.normalized = detectionOutputAttrs.normalized;
-    detParams.image_height = detectionOutputAttrs.input_height;
-    detParams.image_width = detectionOutputAttrs.input_width;
-    detParams.objectness_score = detectionOutputAttrs.objectness_score;
+    detParams.confidence_threshold = (detectionOutputAttrs.confidence_threshold)? detectionOutputAttrs.confidence_threshold : 0;
+    detParams.share_location = (detectionOutputAttrs.share_location)? detectionOutputAttrs.share_location : 0;
+    detParams.clip_before_nms = (detectionOutputAttrs.clip_before_nms)? detectionOutputAttrs.clip_before_nms : 0;
+    detParams.clip_after_nms = (detectionOutputAttrs.clip_after_nms)? detectionOutputAttrs.clip_after_nms : 0;
+    detParams.decrease_label_id = (static_cast<int>(detectionOutputAttrs.decrease_label_id))? static_cast<int>(detectionOutputAttrs.decrease_label_id) : 0;
+    detParams.normalized = (detectionOutputAttrs.normalized)? detectionOutputAttrs.normalized : 0;
+    detParams.image_height = (detectionOutputAttrs.input_height)? detectionOutputAttrs.input_height : 1;
+    detParams.image_width = (detectionOutputAttrs.input_width)? detectionOutputAttrs.input_width : 1;
+    detParams.objectness_score = (detectionOutputAttrs.objectness_score)? detectionOutputAttrs.objectness_score : 0;
     detParams.has_arm_inputs = inputs.size() == 5 ? 1 : 0;
 
     int prior_size = detParams.normalized ? 4 : 5;

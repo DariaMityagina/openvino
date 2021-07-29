@@ -76,6 +76,7 @@ void FrontEnd::parseSoftMax(const Model& model, const NodePtr& _node, const Data
 
     auto perm = DimsOrder::fromNumDims(input->desc().numDims()).toPermutation();
     auto axis = perm[input->desc().numDims() - 1 - softMax->get_axis()];
+    printf("axis = %d\n", int(softMax->get_axis()));
 
     _stageBuilder->addSoftMaxStage(model, softMax->get_friendly_name(), softMax, input, output, axis);
 }
