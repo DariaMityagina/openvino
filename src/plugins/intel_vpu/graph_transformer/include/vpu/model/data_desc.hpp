@@ -47,7 +47,8 @@ VPU_DECLARE_ENUM(DataType,
     U8 = 1,
     S32 = 2,
     FP32 = 3,
-    I8 = 4
+    I8 = 4,
+    I64 = 5
 )
 
 DataType fromIEPrecision(const InferenceEngine::Precision& precision);

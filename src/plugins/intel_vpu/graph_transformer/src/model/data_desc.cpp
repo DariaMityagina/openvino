@@ -357,6 +357,8 @@ DataDesc::DataDesc(DataType type, DimsOrder dimsOrder, const DimValues& dims) :
 
 int DataDesc::elemSize() const {
     switch (_type) {
+    case DataType::I64:
+        return sizeof(int64_t);
     case DataType::U8:
         return sizeof(uint8_t);
     case DataType::I8:
@@ -397,6 +399,8 @@ ie::TensorDesc DataDesc::toTensorDesc() const {
     ie::TensorDesc desc;
 
     switch (this->type()) {
+        case DataType::I64:
+            desc.setPrecision(ie::Precision::I64);
         case DataType::FP16:
             desc.setPrecision(ie::Precision::FP16);
             break;
@@ -646,6 +650,7 @@ int calcTotalByteSize(const DataDesc& desc, const DimValues& strides) {
 
 DataType fromIEPrecision(const InferenceEngine::Precision& precision) {
     switch (precision) {
+        case InferenceEngine::Precision::I64:  return DataType::I64;
         case InferenceEngine::Precision::U8:   return DataType::U8;
         case InferenceEngine::Precision::I8:   return DataType::I8;
         case InferenceEngine::Precision::I32:  return DataType::S32;

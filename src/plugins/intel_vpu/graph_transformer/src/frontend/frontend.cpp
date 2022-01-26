@@ -43,6 +43,7 @@
 #include <vpu/ngraph/transformations/merge_subsequent_dsr_operations.hpp>
 #include "vpu/ngraph/transformations/dynamic_to_static_shape.hpp"
 #include "vpu/ngraph/transformations/eliminate_shapeof_after_dsr.hpp"
+#include "vpu/ngraph/transformations/convert_I64_data.hpp"
 #include <vpu/ngraph/operations/dynamic_shape_resolver.hpp>
 #include <vpu/ngraph/utilities.hpp>
 #include <legacy/ie_util_internal.hpp>
@@ -213,6 +214,7 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
     //  ConvertOpSet1ToLegacy can produce constants with I64 precision
     manager.register_pass<ngraph::pass::ConvertPrecision>(precisions_array {{ ngraph::element::i64, ngraph::element::i32 }}, myriadTypeToFuseMap);
     manager.register_pass<vpu::MergeSubsequentDSROperations>();
+    manager.register_pass<vpu::ConvertI64Data>();
 
     auto pass_config = manager.get_pass_config();
     pass_config->disable<ngraph::pass::ConvertGatherToGatherIEMatcher>();
@@ -228,7 +230,6 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
     };
     pass_config->set_callback<ngraph::pass::ConvertMatMulToFC,
                               ngraph::pass::ConvertStridedSliceToCropMatcher>(transformationPredicate);
-
     manager.run_passes(nGraphFunc);
     IE_SUPPRESS_DEPRECATED_START
     return ie::CNNNetwork(ie::details::convertFunctionToICNNNetwork(nGraphFunc, network));
