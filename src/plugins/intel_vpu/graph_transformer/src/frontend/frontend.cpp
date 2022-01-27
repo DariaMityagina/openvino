@@ -193,6 +193,7 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
         ngraph::opset5::GroupConvolution::get_type_info_static()
     });
     manager.register_pass<vpu::DynamicToStaticShape>();
+    // manager.register_pass<vpu::ConvertI64Data>();
     manager.register_pass<vpu::EliminateShapeOfAfterDSR>();
     manager.register_pass<vpu::ConvertExtractImagePatchesToReorgYolo>();
     // ConstantFolding placed here to avoid precision type missmatch when we try to evaluate nodes with BOOL output.
@@ -209,12 +210,10 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
         { ngraph::element::boolean, ngraph::element::i32 }
     };
     manager.register_pass<ngraph::pass::ConvertPrecision>(precisions, myriadTypeToFuseMap);
-
     manager.register_pass<ngraph::pass::ConvertOpSet1ToLegacy>();
     //  ConvertOpSet1ToLegacy can produce constants with I64 precision
     manager.register_pass<ngraph::pass::ConvertPrecision>(precisions_array {{ ngraph::element::i64, ngraph::element::i32 }}, myriadTypeToFuseMap);
     manager.register_pass<vpu::MergeSubsequentDSROperations>();
-    manager.register_pass<vpu::ConvertI64Data>();
 
     auto pass_config = manager.get_pass_config();
     pass_config->disable<ngraph::pass::ConvertGatherToGatherIEMatcher>();
@@ -230,6 +229,7 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
     };
     pass_config->set_callback<ngraph::pass::ConvertMatMulToFC,
                               ngraph::pass::ConvertStridedSliceToCropMatcher>(transformationPredicate);
+    manager.register_pass<vpu::ConvertI64Data>();
     manager.run_passes(nGraphFunc);
     IE_SUPPRESS_DEPRECATED_START
     return ie::CNNNetwork(ie::details::convertFunctionToICNNNetwork(nGraphFunc, network));
@@ -571,6 +571,7 @@ ModelPtr FrontEnd::runCommonPasses(ie::CNNNetwork network,
 
     DataVector inputs, outputs;
     for (const auto& layer : origLayers()) {
+        std::cout << "Layer : " << layer->name << "\n";
         VPU_LOGGER_SECTION(env.log);
 
         env.log->trace("Try to parse layer %s:%s", layer->name, layer->type);
