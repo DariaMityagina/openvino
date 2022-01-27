@@ -229,7 +229,7 @@ ie::CNNNetwork FrontEnd::convertNetwork(ie::CNNNetwork& network) {
     };
     pass_config->set_callback<ngraph::pass::ConvertMatMulToFC,
                               ngraph::pass::ConvertStridedSliceToCropMatcher>(transformationPredicate);
-    manager.register_pass<vpu::ConvertI64Data>();
+    // manager.register_pass<vpu::ConvertI64Data>();
     manager.run_passes(nGraphFunc);
     IE_SUPPRESS_DEPRECATED_START
     return ie::CNNNetwork(ie::details::convertFunctionToICNNNetwork(nGraphFunc, network));
@@ -571,7 +571,7 @@ ModelPtr FrontEnd::runCommonPasses(ie::CNNNetwork network,
 
     DataVector inputs, outputs;
     for (const auto& layer : origLayers()) {
-        std::cout << "Layer : " << layer->name << "\n";
+        // std::cout << "Layer : " << layer->name << "\n";
         VPU_LOGGER_SECTION(env.log);
 
         env.log->trace("Try to parse layer %s:%s", layer->name, layer->type);

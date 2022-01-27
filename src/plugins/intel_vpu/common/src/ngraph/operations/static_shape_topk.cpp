@@ -44,7 +44,11 @@ void ngraph::vpu::op::StaticShapeTopK::validate_and_infer_types() {
     }
     NODE_VALIDATION_CHECK(this, outputShape.is_static(),
                           "StaticShapeTopK (", get_friendly_name(), ") can't evaluate output shape");
-
+    std::cout << "[DEBUG] get_input_element_type : " << get_input_element_type(0) << "\n";
+    std::cout << "[DEBUG] m_index_element_type : " << m_index_element_type << "\n";
+    if (m_index_element_type == ngraph::element::i64) {
+        m_index_element_type = ngraph::element::i32;
+    }
     set_output_type(0, get_input_element_type(0), outputShape);
     set_output_type(1, m_index_element_type, outputShape);
 }

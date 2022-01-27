@@ -106,6 +106,7 @@ bool convert_precision(pass::PassBase& pass,
                        const type_to_fuse_map& type_to_extend,
                        element::Type from,
                        element::Type to) {
+    std::cout << "[DEBUG] convert_precision\n";
     // As Constant operations can be shared between multiple nGraph Functions so before
     // changing precision we need to understand which Constant consumers belongs
     // to the current nGraph Function
@@ -139,6 +140,9 @@ bool convert_precision(pass::PassBase& pass,
                     return true;
                 }
             }
+            // if (output.get_element_type() == ngraph::element::i64) {
+            //     std::cout << "[DEBUG] output i64 after cinversion : " << node->get_name() << "\n";
+            // }
         }
         return false;
     };
@@ -152,6 +156,9 @@ bool convert_precision(pass::PassBase& pass,
                     return true;
                 }
             }
+            // if (input.get_element_type() == ngraph::element::i64) {
+            //     std::cout << "[DEBUG]    input i64 after cinversion : " << node->get_name() << "\n";
+            // }
         }
         return false;
     };

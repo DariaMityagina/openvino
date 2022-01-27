@@ -940,7 +940,8 @@ CNNLayerCreator::CNNLayerCreator(const std::shared_ptr<::ngraph::Node>& node): n
     addSpecificCreator({"StaticShapeTopK"}, [](const std::shared_ptr<::ngraph::Node>& node,
         const std::map<std::string, std::string>& params) -> CNNLayerPtr {
         LayerParams attrs = {node->get_friendly_name(), "TopK",
-            details::convertPrecision(node->get_output_element_type(0))};
+            // details::convertPrecision(node->get_output_element_type(0))};
+            details::convertPrecision(ngraph::element::i32)};
         auto res = std::make_shared<TopKLayer>(attrs);
         res->params = params;
         return res;
