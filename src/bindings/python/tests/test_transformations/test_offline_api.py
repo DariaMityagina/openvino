@@ -5,7 +5,7 @@ import os
 import numpy as np
 from openvino.offline_transformations import apply_moc_transformations, apply_pot_transformations, \
     apply_low_latency_transformation, apply_pruning_transformation, apply_make_stateful_transformation, \
-    compress_model_transformation, serialize
+    compress_model_transformation, apply_fused_names_cleanup, serialize
 
 from openvino.runtime import Model, PartialShape, Core
 import openvino.runtime as ov
@@ -84,6 +84,21 @@ def test_serialize_pass():
 
     os.remove(xml_path)
     os.remove(bin_path)
+
+
+def test_fused_names_cleanup():
+    model = get_test_model()
+
+    for node in model.get_ops():
+        node.get_rt_info()["fused_names_0"] = "test_op_name"
+
+    apply_fused_names_cleanup(model)
+
+    assert model is not None
+    assert len(model.get_ops()) == 3
+
+    for node in model.get_ops():
+        assert len(node.get_rt_info()) == 0
 
 
 def test_serialize_pass_v2():

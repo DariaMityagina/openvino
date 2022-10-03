@@ -48,6 +48,9 @@ def compress_model(func: object):
     from openvino.offline_transformations import compress_model_transformation  # pylint: disable=import-error,no-name-in-module
     compress_model_transformation(func)
 
+def apply_fused_names_cleanup(func: object):
+    from openvino.offline_transformations import apply_fused_names_cleanup  # pylint: disable=import-error,no-name-in-module
+    apply_fused_names_cleanup(func)
 
 def apply_offline_transformations(input_model: str, argv: argparse.Namespace):
     # This variable is only needed by GenerateMappingFile transformation
@@ -103,6 +106,11 @@ def apply_offline_transformations(input_model: str, argv: argparse.Namespace):
     if "compress_fp16" in argv and argv.compress_fp16:
         compress_model(func)
 
+    apply_fused_names_cleanup(func)
+
     serialize(func, str(input_model + ".xml").encode('utf-8'), (input_model + ".bin").encode('utf-8'))
     path_to_mapping = input_model + ".mapping"
     generate_mapping_file(func, path_to_mapping.encode('utf-8'), extract_names)
+
+    return func
+
