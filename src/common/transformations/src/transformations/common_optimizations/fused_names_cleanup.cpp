@@ -8,12 +8,14 @@
 #include <transformations/rt_info/fused_names_attribute.hpp>
 
 bool ov::pass::FusedNamesCleanup::run_on_model(const std::shared_ptr<ov::Model>& f) {
+    std::cout << "--- FusedNamesCleanup ---\n\n";
     RUN_ON_FUNCTION_SCOPE(FusedNamesCleanup);
 
     for (auto& node : f->get_ordered_ops()) {
         RTMap& rt_info = node->get_rt_info();
         auto it = rt_info.find(ngraph::FusedNames::get_type_info_static());
         if (it != rt_info.end()) {
+            std::cout << "--- FusedNamesCleanup erase name ---\n\n";
             rt_info.erase(it);
         }
     }
