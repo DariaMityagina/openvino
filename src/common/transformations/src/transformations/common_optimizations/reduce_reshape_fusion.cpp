@@ -20,7 +20,7 @@ ov::pass::ReduceReshapeFusion::ReduceReshapeFusion() {
     const auto reduce_axes = pattern::wrap_type<opset9::Constant>();
     const auto reduce = pattern::wrap_type<op::util::ArithmeticReductionKeepDims, op::util::LogicalReductionKeepDims>(
         {pattern::any_input(), reduce_axes},
-        pattern::consumers_count(1));
+        pattern::has_static_shape());
     const auto reshape =
         pattern::wrap_type<opset9::Reshape>({reduce, pattern::any_input()}, pattern::has_static_shape());
 
@@ -32,9 +32,6 @@ ov::pass::ReduceReshapeFusion::ReduceReshapeFusion() {
         if (!reduce_node) {
             return false;
         }
-        if (reduce_node->get_output_partial_shape(0).is_dynamic()) {
-            return false;
-        }
         const bool keep_dims = reduce_node->get_keep_dims();
 
         if (keep_dims) {
@@ -44,12 +41,12 @@ ov::pass::ReduceReshapeFusion::ReduceReshapeFusion() {
         const auto reduce_axes_val = reduce_node->get_reduction_axes().to_vector();
         const auto& reshape_shape = reshape_node->get_shape();
 
-        auto reduce_shape = reduce_node->get_shape();
+        auto reduce_shape_if_keep_dims = reduce_node->get_shape();
         for (const auto& axis : reduce_axes_val) {
-            reduce_shape.insert(std::next(std::begin(reduce_shape), axis), 1);
+            reduce_shape_if_keep_dims.insert(std::next(std::begin(reduce_shape_if_keep_dims), axis), 1);
         }
 
-        if (reduce_shape != reshape_shape) {
+        if (reduce_shape_if_keep_dims != reshape_shape) {
             return false;
         }
 
