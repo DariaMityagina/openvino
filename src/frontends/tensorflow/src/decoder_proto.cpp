@@ -104,14 +104,10 @@ ov::Any DecoderProto::get_attribute(const std::string& name) const {
     case ::tensorflow::AttrValue::ValueCase::kI:
         return attrs[0].i();
     case ::tensorflow::AttrValue::ValueCase::kShape: {
+        std::vector<ov::Dimension> dims;
         const auto& tf_shape = attrs[0].shape();
-        if (tf_shape.unknown_rank()) {
-            return ov::PartialShape::dynamic();
-        }
-        auto shape_rank = tf_shape.dim_size();
-        std::vector<ov::Dimension> dims(shape_rank);
-        for (int i = 0; i < shape_rank; ++i) {
-            dims[i] = static_cast<ov::Dimension::value_type>(tf_shape.dim(i).size());
+        for (int i = 0; i < tf_shape.dim_size(); i++) {
+            dims.emplace_back(tf_shape.dim(i).size());
         }
         return ov::PartialShape(dims);
     }
