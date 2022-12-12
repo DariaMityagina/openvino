@@ -43,10 +43,8 @@
 #include <transformations/common_optimizations/optimize_strided_slice.hpp>
 #include <transformations/common_optimizations/pad_fusion.hpp>
 #include <transformations/common_optimizations/prelu_fusion.hpp>
-#include <transformations/common_optimizations/pull_through_reduce.hpp>
 #include <transformations/common_optimizations/pull_transpose_through_fq.hpp>
 #include <transformations/common_optimizations/random_uniform_fusion.hpp>
-#include <transformations/common_optimizations/reduce_reshape_fusion.hpp>
 #include <transformations/common_optimizations/relu_fake_quantize_fusion.hpp>
 #include <transformations/common_optimizations/remove_concat_zero_dim_input.hpp>
 #include <transformations/common_optimizations/remove_filtering_boxes_by_size.hpp>
@@ -146,7 +144,6 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ngraph::Fu
     REGISTER_PASS(manager, ConvertNmsGatherPathToUnsigned)
     REGISTER_PASS(manager, StridedSliceOptimization, m_use_shapes)
     REGISTER_PASS(manager, BroadcastElementwiseFusion)
-    REGISTER_PASS(manager, PullThroughReduce)
 
     // GRUCellFusion and SequenceFusion should be before NopElimination
     REGISTER_PASS(manager, GRUCellFusion)
