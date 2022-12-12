@@ -175,7 +175,7 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ngraph::Fu
     ADD_MATCHER(common_fusions, ClampFusion)
     ADD_MATCHER(common_fusions, PadFusion)
     ADD_MATCHER(common_fusions, SoftmaxFusion)
-    ADD_MATCHER(common_fusions, ReduceReshapeFusion)
+    // ADD_MATCHER(common_fusions, ReduceReshapeFusion)
     ADD_MATCHER(common_fusions, MVNFusion)
     ADD_MATCHER(common_fusions, DilatedConvolutionConverter)
     ADD_MATCHER(common_fusions, GeluFusion)
