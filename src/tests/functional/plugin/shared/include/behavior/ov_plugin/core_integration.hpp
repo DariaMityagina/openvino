@@ -1252,7 +1252,7 @@ TEST_P(OVClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
         std::string devices;
         auto availableDevices = ie.get_property(target_device, ov::available_devices);
         for (auto&& device : availableDevices) {
-            devices += target_device;
+            devices += target_device + '.' + device;
             if (&device != &(availableDevices.back())) {
                 devices += ',';
             }

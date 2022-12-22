@@ -1145,9 +1145,9 @@ TEST_P(IEClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
         GTEST_FAIL() << "Device does not support AvailableDevices" << std::endl;
     }
     std::string devices;
-    auto availableDevices = ie.GetMetric(target_device, METRIC_KEY(AVAILABLE_DEVICES)).as<std::vector<std::string>>();
+    auto availableDevices = ie.GetMetric(target_device, METRIC_KEY(AVAILABLE_DEVICES));
     for (auto &&device : availableDevices) {
-        devices += target_device;
+        devices += target_device + '.' + device;
         if (&device != &(availableDevices.back())) {
             devices += ',';
         }
