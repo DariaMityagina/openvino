@@ -1147,7 +1147,7 @@ TEST_P(IEClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
     std::string devices;
     auto availableDevices = ie.GetMetric(target_device, METRIC_KEY(AVAILABLE_DEVICES)).as<std::vector<std::string>>();
     for (auto &&device : availableDevices) {
-        devices += target_device + '.' + device;
+        devices += target_device;
         if (&device != &(availableDevices.back())) {
             devices += ',';
         }
