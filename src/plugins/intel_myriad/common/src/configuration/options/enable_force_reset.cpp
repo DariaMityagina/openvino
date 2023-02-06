@@ -33,7 +33,7 @@ details::Category EnableForceResetOption::category() {
 }
 
 std::string EnableForceResetOption::defaultValue() {
-    return InferenceEngine::PluginConfigParams::NO;
+    return InferenceEngine::PluginConfigParams::YES;
 }
 
 EnableForceResetOption::value_type EnableForceResetOption::parse(const std::string& value) {
