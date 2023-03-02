@@ -322,10 +322,7 @@ def main():
                     del device_number_streams[device]
 
         perf_counts = perf_counts
-        device_config = {}
-        for device in config:
-            if benchmark.device.find(device) == 0:
-                device_config = config[device]
+        benchmark.set_config(config)
         if args.cache_dir:
             benchmark.set_cache_dir(args.cache_dir)
 
@@ -351,7 +348,7 @@ def main():
             next_step()
 
             start_time = datetime.utcnow()
-            compiled_model = benchmark.core.compile_model(args.path_to_model, benchmark.device, device_config)
+            compiled_model = benchmark.core.compile_model(args.path_to_model, benchmark.device)
             duration_ms = f"{(datetime.utcnow() - start_time).total_seconds() * 1000:.2f}"
             logger.info(f"Compile model took {duration_ms} ms")
             if statistics:
@@ -414,7 +411,7 @@ def main():
             next_step()
 
             start_time = datetime.utcnow()
-            compiled_model = benchmark.core.compile_model(model, benchmark.device, device_config)
+            compiled_model = benchmark.core.compile_model(model, benchmark.device)
             duration_ms = f"{(datetime.utcnow() - start_time).total_seconds() * 1000:.2f}"
             logger.info(f"Compile model took {duration_ms} ms")
             if statistics:
