@@ -327,6 +327,7 @@ def main():
                     del device_number_streams[device]
 
         perf_counts = perf_counts
+        benchmark.set_config(config)
         device_config = {}
         for device in config:
             if benchmark.device.find(device) == 0:
