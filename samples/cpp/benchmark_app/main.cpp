@@ -377,7 +377,7 @@ int main(int argc, char* argv[]) {
 
             // high-level performance modes
             auto ov_perf_hint = get_performance_hint(device, core);
-            device_config.emplace(ov::hint::performance_mode(ov_perf_hint));
+            device_config[ov::hint::performance_mode.name()] = ov_perf_hint;
             if (FLAGS_nireq != 0)
                 device_config.emplace(ov::hint::num_requests(unsigned(FLAGS_nireq)));
 
