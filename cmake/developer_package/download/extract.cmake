@@ -71,12 +71,12 @@ function (extract_tgz archive_path unpacked_path folder files_to_extract result)
     string(REGEX REPLACE ";" " " list_files_to_extract "${${files_to_extract}}")
     message(STATUS "extracting... [tar -xvzf] ${list_files_to_extract}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xvzf ${archive_path} ${${files_to_extract}}
-      WORKING_DIRECTORY ${unpacked_dir}
+      WORKING_DIRECTORY ${unpacked_dir}/../
       RESULT_VARIABLE rv
       ERROR_VARIABLE err)
     
     execute_process(COMMAND rm -rf /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/openvino/temp/vpu/hddl)
-    execute_process(COMMAND cp -r /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/temp/vpu/hddl_ubuntu20_1909/hddl /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/temp/vpu/)
+    execute_process(COMMAND cp -r /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/openvino/temp/vpu/hddl_ubuntu20_1909/hddl /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/openvino/temp/vpu/)
 
     if (NOT (rv EQUAL 0))
       message(STATUS "error: extract of '${archive_path}' failed: ${err}")
