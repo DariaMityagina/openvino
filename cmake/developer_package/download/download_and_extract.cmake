@@ -102,6 +102,7 @@ function (ExtractWithVersion URL archive_path unpacked_path folder result files_
 
   debug_message("ExtractWithVersion : ${archive_path} : ${unpacked_path} : ${folder} : ${files_to_extract}")
   extract(${archive_path} ${unpacked_path} ${folder} ${files_to_extract} status)
+  extract_tgz(${archive_path} ${unpacked_path} ${folder} ${files_to_extract} status)
   #dont need archive actually after unpacking
   file(REMOVE_RECURSE "${archive_path}")
   if (${status})
