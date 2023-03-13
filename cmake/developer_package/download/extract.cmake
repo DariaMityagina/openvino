@@ -76,7 +76,7 @@ function (extract_tgz archive_path unpacked_path folder files_to_extract result)
       ERROR_VARIABLE err)
 
     execute_process(COMMAND rm -rf /home/jenkins/agent/workspace/OMZ-Validation/try/ubuntu20/custom/hddl_plugin/temp/vpu/hddl)
-    execute_process(COMMAND cp -r /home/jenkins/agent/workspace/OMZ-Validation/try/ubuntu20/custom/hddl_plugin/temp/vpu/hddl_ubuntu20_1909/hddl /opt/home/sys_k8sworker/workspace/DL-Benchmark/master/BenchmarkApp/temp/vpu/)
+    execute_process(COMMAND cp -r /home/jenkins/agent/workspace/OMZ-Validation/try/ubuntu20/custom/hddl_plugin/temp/vpu/hddl_ubuntu20_1909/hddl /home/jenkins/agent/workspace/OMZ-Validation/try/ubuntu20/custom/hddl_plugin/temp/vpu/)
 
     if (NOT (rv EQUAL 0))
       message(STATUS "error: extract of '${archive_path}' failed: ${err}")
