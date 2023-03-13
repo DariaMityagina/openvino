@@ -27,7 +27,14 @@ function (GetNameAndUrlToDownload name url archive_name_unified archive_name_win
     endif()
 
     set (${name} ${archive_name} PARENT_SCOPE)
-    set (${url}  "thirdparty/${PLATFORM_FOLDER}/${archive_name}" PARENT_SCOPE)
+    set(HDDL_DEPENDENCIES "")
+    string(REGEX MATCH "hddl_.*_19.*" HDDL_DEPENDENCIES ${archive_name})
+
+    if(NOT ${HDDL_DEPENDENCIES} EQUAL "")
+      set (${url}  "${archive_name}" PARENT_SCOPE)
+    else()
+      set (${url}  "thirdparty/${PLATFORM_FOLDER}/${archive_name}" PARENT_SCOPE)
+    endif()
   endif()
 endfunction(GetNameAndUrlToDownload)
 
@@ -95,6 +102,7 @@ function (ExtractWithVersion URL archive_path unpacked_path folder result files_
 
   debug_message("ExtractWithVersion : ${archive_path} : ${unpacked_path} : ${folder} : ${files_to_extract}")
   extract(${archive_path} ${unpacked_path} ${folder} ${files_to_extract} status)
+  extract_tgz(${archive_path} ${unpacked_path} ${folder} ${files_to_extract} status)
   #dont need archive actually after unpacking
   file(REMOVE_RECURSE "${archive_path}")
   if (${status})
