@@ -44,7 +44,7 @@ Tensor::Tensor(const element::Type element_type, const Shape& shape, const Alloc
     auto blob_allocator =
         (allocator_impl != nullptr) ? allocator_impl->_impl : std::make_shared<ie::BlobAllocator>(allocator._impl);
     _impl = make_blob_with_precision(
-        {ie::details::convertPrecision(element_type), shape, ie::TensorDesc::getLayoutByDims(shape)},
+        {ie::details::convertPrecision(element_type), shape, ie::TensorDesc::getLayoutByRank(shape.size())},
         blob_allocator);
     _impl->allocate();
 }
@@ -124,7 +124,7 @@ void Tensor::set_shape(const ov::Shape& shape) {
 }
 
 Shape Tensor::get_shape() const {
-    OV_TENSOR_STATEMENT({ return _impl->getTensorDesc().getBlockingDesc().getBlockDims(); });
+    OV_TENSOR_STATEMENT({ return _impl->getTensorDesc().getDims(); });
 }
 
 void Tensor::copy_to(ov::Tensor& dst) const {
