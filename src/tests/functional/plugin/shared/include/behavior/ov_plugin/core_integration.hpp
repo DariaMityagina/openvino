@@ -1256,6 +1256,7 @@ TEST_P(OVClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
         }
         ov::SupportedOpsMap result;
         std::string hetero_device_priorities(CommonTestUtils::DEVICE_MULTI + std::string(",") + target_device);
+        ie.set_property(target_device, ov::hint::performance_mode(ov::hint::PerformanceMode::THROUGHPUT));
         OV_ASSERT_NO_THROW(result = ie.query_model(
                             multinputNetwork,
                             CommonTestUtils::DEVICE_HETERO,
@@ -1263,9 +1264,7 @@ TEST_P(OVClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
                                                    ov::device::priorities(devices)),
                             ov::device::properties(CommonTestUtils::DEVICE_HETERO,
                                                    ov::device::priorities(CommonTestUtils::DEVICE_MULTI,
-                                                                          target_device)),
-                            ov::device::properties(target_device,
-                                                   ov::AnyMap{{ CONFIG_KEY(PERFORMANCE_HINT), CONFIG_VALUE(THROUGHPUT) }})));
+                                                                          target_device))));
 
         std::unordered_set<std::string> actualLayers;
         for (auto&& layer : result) {
