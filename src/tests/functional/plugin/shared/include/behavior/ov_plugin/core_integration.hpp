@@ -1256,7 +1256,6 @@ TEST_P(OVClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
         }
         ov::SupportedOpsMap result;
         std::string hetero_device_priorities(CommonTestUtils::DEVICE_MULTI + std::string(",") + target_device);
-        ie.set_property(target_device, ov::hint::performance_mode(ov::hint::PerformanceMode::THROUGHPUT));
         OV_ASSERT_NO_THROW(result = ie.query_model(
                             multinputNetwork,
                             CommonTestUtils::DEVICE_HETERO,

@@ -1144,7 +1144,6 @@ TEST_P(IEClassLoadNetworkTest, QueryNetworkHETEROWithMULTINoThrow_V10) {
     }
     InferenceEngine::QueryNetworkResult result;
     std::string targetFallback(CommonTestUtils::DEVICE_MULTI + std::string(",") + target_device);
-    ie.set_property(target_device, ov::hint::performance_mode(ov::hint::PerformanceMode::THROUGHPUT));
     ASSERT_NO_THROW(result = ie.QueryNetwork(multinputCnnNetwork, CommonTestUtils::DEVICE_HETERO, {
             {MULTI_CONFIG_KEY(DEVICE_PRIORITIES), devices},
             {"TARGET_FALLBACK",                   targetFallback}}));
