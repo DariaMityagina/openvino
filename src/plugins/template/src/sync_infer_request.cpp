@@ -176,7 +176,8 @@ void ov::template_plugin::InferRequest::infer_preprocess() {
             m_backend_input_tensors[i] =
                 get_template_model()->get_template_plugin()->m_backend->create_tensor(tensor.get_element_type(),
                                                                                       tensor.get_shape());
-            tensor.copy_to(m_backend_input_tensors[i]);
+            // tensor.copy_to(m_backend_input_tensors[i]);
+            std::memcpy(m_backend_input_tensors[i].data(), tensor.data(), tensor.get_byte_size());
         }
     }
     // Tensors can be dynamic, so in this case we need to allocate tensors with right shape

@@ -180,7 +180,9 @@ std::vector<ov::Tensor> interpretFunction(const std::shared_ptr<Function> &funct
                      " has ", inputTensorSize, " bytes");
 
         auto tensor = backend->create_tensor(inputType, inputShape);
-        inputTensor.copy_to(tensor);
+        // inputTensor.copy_to(tensor);
+        std::memcpy(tensor.data(), inputTensor.data(), inputSize);
+
         inputTensors[i] = tensor;
     }
 
