@@ -129,7 +129,7 @@ std::vector<std::pair<ngraph::element::Type, std::vector<std::uint8_t>>>
     const auto &results = function->get_results();
     ov::TensorVector outputTensors(results.size());
     for (size_t i = 0; i < results.size(); ++i) {
-        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), {0});
+        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), results[i]->get_shape());
     }
 
     auto handle = backend->compile(function);
@@ -187,7 +187,7 @@ std::vector<ov::Tensor> interpretFunction(const std::shared_ptr<Function> &funct
     const auto &results = function->get_results();
     ov::TensorVector outputTensors(results.size());
     for (size_t i = 0; i < results.size(); ++i) {
-        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), {0});
+        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), results[i]->get_shape());
     }
 
     auto handle = backend->compile(function);
