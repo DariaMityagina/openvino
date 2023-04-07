@@ -123,13 +123,13 @@ std::vector<std::pair<ngraph::element::Type, std::vector<std::uint8_t>>>
 
         auto tensor = backend->create_tensor(parameterType, parameterShape);
         std::memcpy(tensor.data(), input.data(), parameterSize);
-        inputTensors[i] = tensor;
+        inputTensors.push_back(tensor);
     }
 
     const auto &results = function->get_results();
     ov::TensorVector outputTensors(results.size());
     for (size_t i = 0; i < results.size(); ++i) {
-        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), results[i]->get_shape());
+        outputTensors.push_back(ov::Tensor(results[i]->get_element_type(), results[i]->get_shape()));
     }
 
     auto handle = backend->compile(function);
@@ -181,13 +181,13 @@ std::vector<ov::Tensor> interpretFunction(const std::shared_ptr<Function> &funct
 
         auto tensor = backend->create_tensor(inputType, inputShape);
         inputTensor.copy_to(tensor);
-        inputTensors[i] = tensor;
+        inputTensors.push_back(tensor);
     }
 
     const auto &results = function->get_results();
     ov::TensorVector outputTensors(results.size());
     for (size_t i = 0; i < results.size(); ++i) {
-        outputTensors[i] = ov::Tensor(results[i]->get_element_type(), results[i]->get_shape());
+        outputTensors.push_back(ov::Tensor(results[i]->get_element_type(), results[i]->get_shape()));
     }
 
     auto handle = backend->compile(function);
