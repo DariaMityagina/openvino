@@ -139,14 +139,14 @@ bool ov::runtime::interpreter::INTExecutable::call(std::vector<ov::Tensor>& outp
     for (const auto& param : get_parameters()) {
         for (size_t i = 0; i < param->get_output_size(); ++i) {
             auto tensor = param->output(i).get_tensor_ptr();
-            tensor_map.insert({tensor, inputs[input_count++]});
+            tensor_map.insert({tensor, inputs.at(input_count++)});
         }
     }
 
     std::unordered_map<std::shared_ptr<ov::descriptor::Tensor>, size_t> results_map;
     // map function outputs -> ov::Tensor
     for (size_t output_count = 0; output_count < get_results().size(); ++output_count) {
-        auto output = get_results()[output_count]->output(0).get_tensor_ptr();
+        auto output = get_results().at(output_count)->output(0).get_tensor_ptr();
         if (!results_map.count(output))
             results_map.emplace(output, output_count);
     }
@@ -197,13 +197,13 @@ bool ov::runtime::interpreter::INTExecutable::call(std::vector<ov::Tensor>& outp
         // Update tensors in tensor map
         for (size_t i = 0; i < op->get_output_size(); ++i) {
             auto tensor = op->output(i).get_tensor_ptr();
-            tensor_map.insert({tensor, op_outputs[i]});
+            tensor_map.insert({tensor, op_outputs.at(i)});
             if (op::util::is_output(op)) {
-                auto& output = outputs[results_map[tensor]];
-                if (!output || output.get_shape() != op_outputs[i].get_shape()) {
-                    outputs[results_map[tensor]] = op_outputs[i];
+                auto& output = outputs.at(results_map.at(tensor));
+                if (!output || output.get_shape() != op_outputs.at(i).get_shape()) {
+                    outputs.at(results_map.at(tensor)) = op_outputs.at(i);
                 } else {
-                    op_outputs[i].copy_to(output);
+                    op_outputs.at(i).copy_to(output);
                 }
             }
         }
