@@ -28,6 +28,24 @@ INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPr
                                 ::testing::ValuesIn(configs)),
                         PreprocessingPrecisionConvertTest::getTestCaseName);
 
+INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPrecisionConvertTest,
+                        ::testing::Combine(
+                                ::testing::ValuesIn(inputPrecisions),
+                                ::testing::Values(1),   // Number of input tensor channels
+                                ::testing::Values(true),             // Use SetInput
+                                ::testing::Values(CommonTestUtils::DEVICE_CPU),
+                                ::testing::ValuesIn(configs)),
+                        PreprocessingPrecisionConvertTest::getTestCaseName);
+
+INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPrecisionConvertTest,
+                        ::testing::Combine(
+                                ::testing::ValuesIn(inputPrecisions),
+                                ::testing::Values(1),   // Number of input tensor channels
+                                ::testing::Values(false),             // Use SetInput
+                                ::testing::Values(CommonTestUtils::DEVICE_CPU),
+                                ::testing::ValuesIn(configs)),
+                        PreprocessingPrecisionConvertTest::getTestCaseName);
+
 INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaGetBlob, PreprocessingPrecisionConvertTest,
                         ::testing::Combine(
                                 ::testing::ValuesIn(inputPrecisions),
