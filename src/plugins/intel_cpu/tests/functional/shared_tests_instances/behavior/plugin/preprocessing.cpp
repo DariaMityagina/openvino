@@ -28,7 +28,7 @@ INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPr
                                 ::testing::ValuesIn(configs)),
                         PreprocessingPrecisionConvertTest::getTestCaseName);
 
-INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPrecisionConvertTest,
+INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput_1, PreprocessingPrecisionConvertTest,
                         ::testing::Combine(
                                 ::testing::ValuesIn(inputPrecisions),
                                 ::testing::Values(1),   // Number of input tensor channels
@@ -37,7 +37,7 @@ INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPr
                                 ::testing::ValuesIn(configs)),
                         PreprocessingPrecisionConvertTest::getTestCaseName);
 
-INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput, PreprocessingPrecisionConvertTest,
+INSTANTIATE_TEST_SUITE_P(BehaviourPreprocessingTestsViaSetInput_2, PreprocessingPrecisionConvertTest,
                         ::testing::Combine(
                                 ::testing::ValuesIn(inputPrecisions),
                                 ::testing::Values(1),   // Number of input tensor channels
