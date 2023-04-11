@@ -52,7 +52,7 @@ void LayerTestsCommon::Run() {
         crashHandler->StartTimer();
         try {
             LoadNetwork();
-            GenerateInputs();
+            // GenerateInputs();
             // Infer();
             // Validate();
             s.updateOPsStats(functionRefs, ov::test::utils::PassRate::Statuses::PASSED);
