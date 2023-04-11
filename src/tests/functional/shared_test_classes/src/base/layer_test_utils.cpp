@@ -50,6 +50,7 @@ void LayerTestsCommon::Run() {
 #endif
     if (jmpRes == CommonTestUtils::JMP_STATUS::ok) {
         crashHandler->StartTimer();
+        std::cout << "--- LayerTestsCommon::Run()\n";
         try {
             LoadNetwork();
             // GenerateInputs();
