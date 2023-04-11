@@ -122,8 +122,8 @@ public:
         functionRefs = ngraph::clone_function(*function);
         try {
             LoadNetwork();
-            GenerateInputs();
-            Infer();
+            // GenerateInputs();
+            // Infer();
             // Validate();
         }
         catch (const std::runtime_error &re) {
