@@ -652,35 +652,46 @@ public:
 
 TEST_P(InferRequestPreprocessConversionTest, Infer) {
     std::shared_ptr<ngraph::Function> ngraph;
+    std::cout << "InferRequestPreprocessConversionTest - 0\n";
     unsigned int shape_size = 9, channels = 3, batch = 1, offset = 0;
     {
         ngraph::PartialShape shape({batch, channels, shape_size, shape_size});
         ngraph::element::Type type(InferenceEngine::details::convertPrecision(netPrecision));
+        std::cout << "InferRequestPreprocessConversionTest - 1\n";
         auto param = std::make_shared<ngraph::op::Parameter>(type, shape);
         param->set_friendly_name("param");
         auto relu = std::make_shared<ngraph::op::Relu>(param);
+        std::cout << "InferRequestPreprocessConversionTest - 2\n";
         relu->set_friendly_name("relu");
         auto result = std::make_shared<ngraph::op::Result>(relu);
+        std::cout << "InferRequestPreprocessConversionTest - 3\n";
         result->set_friendly_name("result");
 
         ngraph::ParameterVector params = {param};
         ngraph::ResultVector results = {result};
-
+        std::cout << "InferRequestPreprocessConversionTest - 4\n";
         ngraph = std::make_shared<ngraph::Function>(results, params);
+        std::cout << "InferRequestPreprocessConversionTest - 5\n";
     }
 
     // Create CNNNetwork from ngraph::Function
     InferenceEngine::CNNNetwork cnnNet(ngraph);
 
     cnnNet.getInputsInfo().begin()->second->setPrecision(iPrecision);
+    std::cout << "InferRequestPreprocessConversionTest - 6\n";
     cnnNet.getInputsInfo().begin()->second->setLayout(iLayout);
+    std::cout << "InferRequestPreprocessConversionTest - 7\n";
     cnnNet.getOutputsInfo().begin()->second->setPrecision(oPrecision);
+    std::cout << "InferRequestPreprocessConversionTest - 8\n";
     cnnNet.getOutputsInfo().begin()->second->setLayout(oLayout);
+    std::cout << "InferRequestPreprocessConversionTest - 9\n";
 
     // Load CNNNetwork to target plugins
     auto execNet = ie->LoadNetwork(cnnNet, target_device, configuration);
+    std::cout << "InferRequestPreprocessConversionTest - 10\n";
     // Create InferRequest
     auto req = execNet.CreateInferRequest();
+    std::cout << "InferRequestPreprocessConversionTest - 11\n";
 
     // unsigned int stride = shape_size + offset;
     // std::vector<float> blobData(batch * channels * stride * stride, 0);
@@ -698,18 +709,24 @@ TEST_P(InferRequestPreprocessConversionTest, Infer) {
 
     if (setInputBlob) {
         inBlob = make_blob_with_precision(cnnNet.getInputsInfo().begin()->second->getTensorDesc());
+        std::cout << "InferRequestPreprocessConversionTest - 12\n";
         inBlob->allocate();
+        std::cout << "InferRequestPreprocessConversionTest - 13\n";
         req.SetBlob("param", inBlob);
     } else {
         inBlob = req.GetBlob("param");
+        std::cout << "InferRequestPreprocessConversionTest - 14\n";
     }
 
     if (setOutputBlob) {
         outBlob = make_blob_with_precision(cnnNet.getOutputsInfo().begin()->second->getTensorDesc());
+        std::cout << "InferRequestPreprocessConversionTest - 15\n";
         outBlob->allocate();
+        std::cout << "InferRequestPreprocessConversionTest - 16\n";
         req.SetBlob("relu", outBlob);
     } else {
         outBlob = req.GetBlob("relu");
+        std::cout << "InferRequestPreprocessConversionTest - 17\n";
     }
 
     // Fill input
@@ -718,10 +735,12 @@ TEST_P(InferRequestPreprocessConversionTest, Infer) {
         auto desc = inBlob->getTensorDesc();
 
         if (desc.getPrecision() == InferenceEngine::Precision::FP32) {
+            std::cout << "InferRequestPreprocessConversionTest - 18\n";
             auto *inData = lockedMem.as<float*>();
             for (size_t i = 0; i < inBlob->size(); i++)
                 inData[desc.offset(i)] = static_cast<float>(i);
         } else if (desc.getPrecision() == InferenceEngine::Precision::U8) {
+            std::cout << "InferRequestPreprocessConversionTest - 19\n";
             auto *inData = lockedMem.as<std::uint8_t*>();
             for (size_t i = 0; i < inBlob->size(); i++)
                 inData[desc.offset(i)] = static_cast<std::uint8_t>(i);
@@ -730,7 +749,9 @@ TEST_P(InferRequestPreprocessConversionTest, Infer) {
         }
     }
 
+    std::cout << "InferRequestPreprocessConversionTest - 20\n";
     req.Infer();
+    std::cout << "InferRequestPreprocessConversionTest - 21\n";
 
     // Check output
     {
@@ -738,11 +759,13 @@ TEST_P(InferRequestPreprocessConversionTest, Infer) {
         auto desc = outBlob->getTensorDesc();
 
         if (desc.getPrecision() == InferenceEngine::Precision::FP32) {
+            std::cout << "InferRequestPreprocessConversionTest - 22\n";
             const auto* outData = outMem.as<const float *>();
             ASSERT_EQ(inBlob->size(), outBlob->size());
             for (size_t i = 0; i < inBlob->size(); i++)
                 ASSERT_EQ(i, outData[desc.offset(i)]) << i;
         } else if (desc.getPrecision() == InferenceEngine::Precision::U8) {
+            std::cout << "InferRequestPreprocessConversionTest - 23\n";
             const auto* outData = outMem.as<const std::uint8_t *>();
             ASSERT_EQ(inBlob->size(), outBlob->size());
             for (size_t i = 0; i < inBlob->size(); i++)
