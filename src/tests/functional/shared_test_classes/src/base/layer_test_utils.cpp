@@ -53,9 +53,9 @@ void LayerTestsCommon::Run() {
         std::cout << "--- LayerTestsCommon::Run()\n";
         try {
             LoadNetwork();
-            // GenerateInputs();
-            // Infer();
-            // Validate();
+            GenerateInputs();
+            Infer();
+            Validate();
             s.updateOPsStats(functionRefs, ov::test::utils::PassRate::Statuses::PASSED);
         }
         catch (const std::runtime_error &re) {

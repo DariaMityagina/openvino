@@ -121,10 +121,15 @@ public:
         SKIP_IF_CURRENT_TEST_IS_DISABLED();
         functionRefs = ngraph::clone_function(*function);
         try {
+            std::cout << "Run 0\n";
             LoadNetwork();
+            std::cout << "Run 1\n";
             GenerateInputs();
+            std::cout << "Run 2\n";
             Infer();
+            std::cout << "Run 3\n";
             Validate();
+            std::cout << "Run 4\n";
         }
         catch (const std::runtime_error &re) {
             GTEST_FATAL_FAILURE_(re.what());
