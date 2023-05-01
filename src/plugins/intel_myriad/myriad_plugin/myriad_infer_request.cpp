@@ -331,6 +331,7 @@ static void copyBlobAccordingUpperBound(
 }
 
 void MyriadInferRequest::GetResult() {
+    printf("--- GetResult()\n");
     VPU_PROFILE(GetResult);
 
     auto networkOutputs = _networkOutputs;

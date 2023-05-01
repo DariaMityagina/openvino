@@ -129,7 +129,7 @@ private:
 
 private:
     std::string _name;
-    LogLevel _logLevel = LogLevel::None;
+    LogLevel _logLevel = LogLevel::Trace;
     OutputStream::Ptr _out;
 
     size_t _ident = 0;

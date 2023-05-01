@@ -43,6 +43,7 @@ static XLinkError_t getLinkByStreamId(streamId_t streamId, xLinkDesc_t** out_lin
 
 streamId_t XLinkOpenStream(linkId_t id, const char* name, int stream_write_size)
 {
+    printf("--- XLinkOpenStream\n");
     XLINK_RET_ERR_IF(name == NULL, INVALID_STREAM_ID);
     XLINK_RET_ERR_IF(stream_write_size < 0, INVALID_STREAM_ID);
 
@@ -104,6 +105,7 @@ streamId_t XLinkOpenStream(linkId_t id, const char* name, int stream_write_size)
 // and on the remote side we are freeing the read buffer
 XLinkError_t XLinkCloseStream(streamId_t streamId)
 {
+    printf("--- XLinkCloseStream\n");
     xLinkDesc_t* link = NULL;
     XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
@@ -119,6 +121,7 @@ XLinkError_t XLinkCloseStream(streamId_t streamId)
 XLinkError_t XLinkWriteData(streamId_t streamId, const uint8_t* buffer,
                             int size)
 {
+    printf("--- XLinkWriteData\n");
     XLINK_RET_IF(buffer == NULL);
 
     float opTime = 0.0f;
@@ -142,6 +145,7 @@ XLinkError_t XLinkWriteData(streamId_t streamId, const uint8_t* buffer,
 
 XLinkError_t XLinkReadData(streamId_t streamId, streamPacketDesc_t** packet)
 {
+    printf("--- XLinkReadData\n");
     XLINK_RET_IF(packet == NULL);
 
     float opTime = 0.0f;
@@ -171,6 +175,7 @@ XLinkError_t XLinkReadData(streamId_t streamId, streamPacketDesc_t** packet)
 XLinkError_t XLinkWriteDataWithTimeout(streamId_t streamId, const uint8_t* buffer,
                                        int size, unsigned int timeoutMs)
 {
+    printf("--- XLinkWriteDataWithTimeout\n");
     XLINK_RET_IF(buffer == NULL);
 
     float opTime = 0.0f;
@@ -194,6 +199,7 @@ XLinkError_t XLinkWriteDataWithTimeout(streamId_t streamId, const uint8_t* buffe
 
 XLinkError_t XLinkReadDataWithTimeout(streamId_t streamId, streamPacketDesc_t** packet, unsigned int timeoutMs)
 {
+    printf("--- XLinkReadDataWithTimeout\n");
     XLINK_RET_IF(packet == NULL);
 
     float opTime = 0.0f;
@@ -222,6 +228,7 @@ XLinkError_t XLinkReadDataWithTimeout(streamId_t streamId, streamPacketDesc_t** 
 
 XLinkError_t XLinkReleaseData(streamId_t streamId)
 {
+    printf("--- XLinkReleaseData\n");
     xLinkDesc_t* link = NULL;
     XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
@@ -237,6 +244,7 @@ XLinkError_t XLinkReleaseData(streamId_t streamId)
 
 XLinkError_t XLinkReleaseSpecificData(streamId_t streamId, streamPacketDesc_t* packetDesc)
 {
+    printf("--- XLinkReleaseSpecificData\n");
     xLinkDesc_t* link = NULL;
     XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
@@ -252,6 +260,7 @@ XLinkError_t XLinkReleaseSpecificData(streamId_t streamId, streamPacketDesc_t* p
 
 XLinkError_t XLinkGetFillLevel(streamId_t streamId, int isRemote, int* fillLevel)
 {
+    printf("--- XLinkGetFillLevel\n");
     xLinkDesc_t* link = NULL;
     XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
@@ -276,6 +285,7 @@ XLinkError_t XLinkGetFillLevel(streamId_t streamId, int isRemote, int* fillLevel
 // ------------------------------------
 
 XLinkError_t checkEventHeader(xLinkEventHeader_t header) {
+    printf("--- checkEventHeader\n");
     mvLog(MVLOG_DEBUG, "header.flags.bitField: ack:%u, nack:%u, sizeTooBig:%u, block:%u, bufferFull:%u, localServe:%u, noSuchStream:%u, terminate:%u",
           header.flags.bitField.ack,
           header.flags.bitField.nack,
@@ -313,6 +323,7 @@ float timespec_diff(struct timespec *start, struct timespec *stop)
 
 XLinkError_t addEvent(xLinkEvent_t *event, unsigned int timeoutMs)
 {
+    printf("--- addEvent - %s\n", TypeToStr(event->header.type));
     ASSERT_XLINK(event);
 
     xLinkEvent_t* ev = DispatcherAddEvent(EVENT_LOCAL, event);
@@ -375,6 +386,7 @@ XLinkError_t addEvent(xLinkEvent_t *event, unsigned int timeoutMs)
 
 XLinkError_t addEventWithPerf(xLinkEvent_t *event, float* opTime, unsigned int timeoutMs)
 {
+    printf("--- addEventWithPerf - %s\n", TypeToStr(event->header.type));
     ASSERT_XLINK(opTime);
 
     struct timespec start, end;
@@ -389,6 +401,7 @@ XLinkError_t addEventWithPerf(xLinkEvent_t *event, float* opTime, unsigned int t
 }
 
 static XLinkError_t getLinkByStreamId(streamId_t streamId, xLinkDesc_t** out_link) {
+    printf("--- getLinkByStreamId\n");
     ASSERT_XLINK(out_link != NULL);
 
     linkId_t id = EXTRACT_LINK_ID(streamId);

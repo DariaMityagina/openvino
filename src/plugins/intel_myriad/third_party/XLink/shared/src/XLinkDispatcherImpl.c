@@ -44,6 +44,7 @@ static int handleIncomingEvent(xLinkEvent_t* event);
 //adds a new event with parameters and returns event id
 int dispatcherEventSend(xLinkEvent_t *event)
 {
+    printf("--- dispatcherEventSend - %s\n", TypeToStr(event->header.type));
     mvLog(MVLOG_DEBUG, "Send event: %s, size %u, streamId %u.\n",
         TypeToStr(event->header.type), event->header.size, event->header.streamId);
 
@@ -68,6 +69,7 @@ int dispatcherEventSend(xLinkEvent_t *event)
 }
 
 int dispatcherEventReceive(xLinkEvent_t* event){
+    printf("--- dispatcherEventReceive - %s\n", TypeToStr(event->header.type));
     static xLinkEvent_t prevEvent = {0};
     int rc = XLinkPlatformRead(&event->deviceHandle,
         &event->header, sizeof(event->header));
@@ -99,6 +101,7 @@ int dispatcherEventReceive(xLinkEvent_t* event){
 //this function should be called only for remote requests
 int dispatcherLocalEventGetResponse(xLinkEvent_t* event, xLinkEvent_t* response)
 {
+    printf("--- dispatcherLocalEventGetResponse - %s\n", TypeToStr(event->header.type));
     streamDesc_t* stream;
     response->header.id = event->header.id;
     mvLog(MVLOG_DEBUG, "%s\n",TypeToStr(event->header.type));
@@ -265,6 +268,7 @@ int dispatcherLocalEventGetResponse(xLinkEvent_t* event, xLinkEvent_t* response)
 //this function should be called only for remote requests
 int dispatcherRemoteEventGetResponse(xLinkEvent_t* event, xLinkEvent_t* response)
 {
+    printf("--- dispatcherRemoteEventGetResponse - %s\n", TypeToStr(event->header.type));
     streamDesc_t* stream;
     response->header.id = event->header.id;
     response->header.flags.raw = 0;
@@ -583,6 +587,7 @@ int isStreamSpaceEnoughFor(streamDesc_t* stream, uint32_t size)
 
 streamPacketDesc_t* getPacketFromStream(streamDesc_t* stream)
 {
+    printf("--- getPacketFromStream\n");
     streamPacketDesc_t* ret = NULL;
     if (stream->availablePackets)
     {
@@ -597,6 +602,7 @@ streamPacketDesc_t* getPacketFromStream(streamDesc_t* stream)
 
 int releasePacketFromStream(streamDesc_t* stream, uint32_t* releasedSize)
 {
+    printf("--- releasePacketFromStream\n");
     streamPacketDesc_t* currPack = &stream->packets[stream->firstPacket];
     if(stream->blockedPackets == 0){
         mvLog(MVLOG_ERROR,"There is no packet to release\n");
@@ -619,6 +625,7 @@ int releasePacketFromStream(streamDesc_t* stream, uint32_t* releasedSize)
 }
 
 int releaseSpecificPacketFromStream(streamDesc_t* stream, uint32_t* releasedSize, uint8_t* data) {
+    printf("--- releaseSpecificPacketFromStream\n");
     if (stream->blockedPackets == 0) {
         mvLog(MVLOG_ERROR,"There is no packet to release\n");
         return 0; // ignore this, although this is a big problem on application side
@@ -671,6 +678,7 @@ int releaseSpecificPacketFromStream(streamDesc_t* stream, uint32_t* releasedSize
 }
 
 int addNewPacketToStream(streamDesc_t* stream, void* buffer, uint32_t size) {
+    printf("--- addNewPacketToStream\n");
     if (stream->availablePackets + stream->blockedPackets < XLINK_MAX_PACKETS_PER_STREAM)
     {
         stream->packets[stream->firstPacketFree].data = buffer;
@@ -683,6 +691,7 @@ int addNewPacketToStream(streamDesc_t* stream, void* buffer, uint32_t size) {
 }
 
 int handleIncomingEvent(xLinkEvent_t* event) {
+    printf("--- handleIncomingEvent - %s\n", TypeToStr(event->header.type));
     //this function will be dependent whether this is a client or a Remote
     //specific actions to this peer
     mvLog(MVLOG_DEBUG, "%s, size %u, streamId %u.\n", TypeToStr(event->header.type), event->header.size, event->header.streamId);

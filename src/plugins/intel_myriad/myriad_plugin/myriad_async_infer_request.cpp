@@ -17,9 +17,11 @@ MyriadAsyncInferRequest::MyriadAsyncInferRequest(MyriadInferRequest::Ptr request
     _request(request), _taskExecutorGetResult(taskExecutorGetResult) {
         _pipeline = {
             {_requestExecutor, [this] {
+                printf("--- MyriadAsyncInferRequest, InferAsync\n");
                 _request->InferAsync();
             }},
             {_taskExecutorGetResult, [this] {
+                printf("--- MyriadAsyncInferRequest, GetResult\n");
                 _request->GetResult();
             }}
         };

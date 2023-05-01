@@ -3239,6 +3239,7 @@ ncStatus_t ncFifoWriteElem(struct ncFifoHandle_t * fifoHandle,
 ncStatus_t ncFifoReadElem(struct ncFifoHandle_t * fifoHandle, void *outputData,
                           unsigned int *outputDataLen, void **userParam)
 {
+    printf("ncFifoReadElem\n");
     if (!fifoHandle) {
         mvLog(MVLOG_ERROR, "fifo handle is NULL");
         return NC_INVALID_HANDLE;

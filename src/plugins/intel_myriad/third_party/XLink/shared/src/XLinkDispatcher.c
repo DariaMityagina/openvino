@@ -180,6 +180,7 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr);
 // ------------------------------------
 
 XLinkError_t DispatcherInitialize(DispatcherControlFunctions *controlFunc) {
+    printf("--- DispatcherInitialize\n");
     ASSERT_XLINK(controlFunc != NULL);
 
     if (!controlFunc->eventReceive ||
@@ -206,6 +207,7 @@ XLinkError_t DispatcherInitialize(DispatcherControlFunctions *controlFunc) {
 
 XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle)
 {
+    printf("--- DispatcherStart\n");
     ASSERT_XLINK(deviceHandle);
 #ifdef __PC__
     ASSERT_XLINK(deviceHandle->xLinkFD != NULL);
@@ -330,6 +332,7 @@ XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle)
 }
 
 int DispatcherClean(xLinkDeviceHandle_t *deviceHandle) {
+    printf("--- DispatcherClean\n");
     XLINK_RET_IF(deviceHandle == NULL);
 
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(deviceHandle->xLinkFD);
@@ -340,6 +343,7 @@ int DispatcherClean(xLinkDeviceHandle_t *deviceHandle) {
 
 xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
 {
+    printf("--- DispatcherAddEvent - %s\n", TypeToStr(event->header.type));
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(event->deviceHandle.xLinkFD);
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
@@ -387,6 +391,7 @@ xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
 
 int DispatcherWaitEventComplete(xLinkDeviceHandle_t *deviceHandle, unsigned int timeoutMs)
 {
+    printf("--- DispatcherWaitEventComplete\n");
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(deviceHandle->xLinkFD);
     ASSERT_XLINK(curr != NULL);
 
@@ -467,6 +472,7 @@ char* TypeToStr(int type)
 
 int DispatcherServeOrDropEvent(eventId_t id, xLinkEventType_t type, streamId_t stream, void *xlinkFD)
 {
+    printf("--- DispatcherServeOrDropEvent\n");
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(xlinkFD);
     ASSERT_XLINK(curr != NULL);
 
@@ -520,6 +526,7 @@ int DispatcherServeOrDropEvent(eventId_t id, xLinkEventType_t type, streamId_t s
 
 int DispatcherUnblockEvent(eventId_t id, xLinkEventType_t type, streamId_t stream, void *xlinkFD)
 {
+    printf("--- DispatcherUnblockEvent\n");
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(xlinkFD);
     ASSERT_XLINK(curr != NULL);
 
@@ -576,6 +583,7 @@ int pthread_t_compare(pthread_t a, pthread_t b)
 
 static XLink_sem_t* createSem(xLinkSchedulerState_t* curr)
 {
+    printf("--- createSem\n");
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
     XLink_sem_t* sem = getSem(pthread_self(), curr);
@@ -628,6 +636,7 @@ static XLink_sem_t* createSem(xLinkSchedulerState_t* curr)
 
 static XLink_sem_t* getSem(pthread_t threadId, xLinkSchedulerState_t *curr)
 {
+    printf("--- getSem\n");
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
     localSem_t* temp = curr->eventSemaphores;
@@ -648,6 +657,7 @@ static void* __cdecl eventReader(void* ctx)
 static void* eventReader(void* ctx)
 #endif
 {
+    printf("--- eventReader\n");
     xLinkSchedulerState_t *curr = (xLinkSchedulerState_t*)ctx;
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
@@ -698,6 +708,7 @@ static void* __cdecl eventSchedulerRun(void* ctx)
 static void* eventSchedulerRun(void* ctx)
 #endif
 {
+    printf("--- eventSchedulerRun\n");
     int schedulerId = *((int*) ctx);
     mvLog(MVLOG_DEBUG,"%s() schedulerId %d\n", __func__, schedulerId);
     XLINK_RET_ERR_IF(schedulerId >= MAX_SCHEDULERS, NULL);
@@ -793,6 +804,7 @@ static int isEventTypeRequest(xLinkEventPriv_t* event)
 
 static void postAndMarkEventServed(xLinkEventPriv_t *event)
 {
+    printf("--- postAndMarkEventServed\n");
     if (event->retEv) {
         // the xLinkEventPriv_t slot pointed by "event" will be
         // re-cycled as soon as we mark it as EVENT_SERVED,
@@ -825,6 +837,7 @@ int findAvailableScheduler()
 
 static xLinkSchedulerState_t* findCorrespondingScheduler(void* xLinkFD)
 {
+    printf("--- findCorrespondingScheduler\n");
     int i;
     XLINK_RET_ERR_IF(pthread_mutex_lock(&num_schedulers_mutex) != 0, NULL);
     if (xLinkFD == NULL) { //in case of myriad there should be one scheduler
@@ -848,6 +861,7 @@ static xLinkSchedulerState_t* findCorrespondingScheduler(void* xLinkFD)
 }
 
 static int dispatcherRequestServe(xLinkEventPriv_t * event, xLinkSchedulerState_t* curr){
+    printf("--- dispatcherRequestServe\n");
     XLINK_RET_IF(curr == NULL);
     XLINK_RET_IF(!isEventTypeRequest(event));
     xLinkEventHeader_t *header = &event->packet.header;
@@ -870,6 +884,7 @@ static int dispatcherRequestServe(xLinkEventPriv_t * event, xLinkSchedulerState_
 
 static int dispatcherResponseServe(xLinkEventPriv_t * event, xLinkSchedulerState_t* curr)
 {
+    printf("--- dispatcherResponseServe\n");
     XLINK_RET_ERR_IF(curr == NULL, 1);
     XLINK_RET_ERR_IF(isEventTypeRequest(event), 1);
     int i = 0;
@@ -923,6 +938,7 @@ static int dispatcherResponseServe(xLinkEventPriv_t * event, xLinkSchedulerState
 
 static inline xLinkEventPriv_t* getNextElementWithState(xLinkEventPriv_t* base, xLinkEventPriv_t* end,
                                                         xLinkEventPriv_t* start, xLinkEventState_t state){
+    printf("--- getNextElementWithState\n");
     xLinkEventPriv_t* tmp = start;
     while (start->isServed != state){
         CIRCULAR_INCREMENT_BASE(start, end, base);
@@ -939,6 +955,7 @@ static inline xLinkEventPriv_t* getNextElementWithState(xLinkEventPriv_t* base, 
 
 static xLinkEventPriv_t* searchForReadyEvent(xLinkSchedulerState_t* curr)
 {
+    printf("--- searchForReadyEvent\n");
     XLINK_RET_ERR_IF(curr == NULL, NULL);
     xLinkEventPriv_t* ev = NULL;
 
@@ -952,6 +969,7 @@ static xLinkEventPriv_t* searchForReadyEvent(xLinkSchedulerState_t* curr)
 }
 
 static xLinkEventPriv_t* getNextQueueElemToProc(eventQueueHandler_t *q) {
+    printf("--- getNextQueueElemToProc\n");
     xLinkEventPriv_t* event = NULL;
     if (q->cur != q->curProc) {
         event = getNextElementWithState(q->base, q->end, q->curProc, EVENT_ALLOCATED);
@@ -968,6 +986,7 @@ static xLinkEventPriv_t* getNextQueueElemToProc(eventQueueHandler_t *q) {
 static xLinkEvent_t* addNextQueueElemToProc(xLinkSchedulerState_t* curr,
                                             eventQueueHandler_t *q, xLinkEvent_t* event,
                                             XLink_sem_t* sem, xLinkEventOrigin_t o){
+    printf("--- addNextQueueElemToProc\n");
     xLinkEvent_t* ev;
     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, NULL);
     xLinkEventPriv_t* eventP = getNextElementWithState(q->base, q->end, q->cur, EVENT_SERVED);
@@ -997,6 +1016,7 @@ static xLinkEvent_t* addNextQueueElemToProc(xLinkSchedulerState_t* curr,
 
 static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
 {
+    printf("--- dispatcherGetNextEvent\n");
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
     int rc;
@@ -1031,6 +1051,7 @@ static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
 
 static int dispatcherClean(xLinkSchedulerState_t* curr)
 {
+    printf("--- dispatcherClean\n");
     XLINK_RET_ERR_IF(pthread_mutex_lock(&clean_mutex), 1);
     if (curr->schedulerId == -1) {
         mvLog(MVLOG_WARN,"Scheduler has already been reset or cleaned");
@@ -1105,6 +1126,7 @@ static int dispatcherClean(xLinkSchedulerState_t* curr)
 
 static int dispatcherReset(xLinkSchedulerState_t* curr)
 {
+    printf("--- dispatcherReset\n");
     ASSERT_XLINK(curr != NULL);
 
     glControlFunc->closeDeviceFd(&curr->deviceHandle);
@@ -1123,6 +1145,7 @@ static int dispatcherReset(xLinkSchedulerState_t* curr)
 }
 
 static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
+    printf("--- sendEvents\n");
     int res;
     xLinkEventPriv_t* event;
     xLinkEventPriv_t response;
@@ -1233,6 +1256,7 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
 }
 
 static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t state) {
+    printf("--- dispatcherFreeEvents\n");
     if(queue == NULL) {
         return;
     }

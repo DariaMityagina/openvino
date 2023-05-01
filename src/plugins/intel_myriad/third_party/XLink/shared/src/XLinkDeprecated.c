@@ -26,6 +26,7 @@
 
 XLinkError_t getDeviceName(int index, char* name, int nameSize, XLinkPlatform_t platform, XLinkDeviceState_t state)
 {
+    printf("--- getDeviceName\n");
     XLINK_RET_IF(name == NULL);
     XLINK_RET_IF(index < 0);
     XLINK_RET_IF(nameSize <= 0);
@@ -62,11 +63,13 @@ XLinkError_t getDeviceName(int index, char* name, int nameSize, XLinkPlatform_t 
 
 XLinkError_t XLinkGetDeviceName(int index, char* name, int nameSize)
 {
+    printf("--- XLinkGetDeviceName\n");
     return getDeviceName(index, name, nameSize, X_LINK_ANY_PLATFORM, X_LINK_ANY_STATE);
 }
 
 XLinkError_t XLinkGetDeviceNameExtended(int index, char* name, int nameSize, int pid)
 {
+    printf("--- XLinkGetDeviceNameExtended\n");
     XLinkDeviceState_t state = XLinkPlatformPidToState(pid);
     XLinkPlatform_t platform = XLinkPlatformPidToPlatform(pid);
 
@@ -75,6 +78,7 @@ XLinkError_t XLinkGetDeviceNameExtended(int index, char* name, int nameSize, int
 
 XLinkError_t XLinkBootRemote(const char* deviceName, const char* binaryPath)
 {
+    printf("--- XLinkBootRemote\n");
     XLINK_RET_IF(deviceName == NULL);
     XLINK_RET_IF(binaryPath == NULL);
 
@@ -87,6 +91,7 @@ XLinkError_t XLinkBootRemote(const char* deviceName, const char* binaryPath)
 
 XLinkError_t XLinkDisconnect(linkId_t id)
 {
+    printf("--- XLinkDisconnect\n");
     xLinkDesc_t* link = getLinkById(id);
     XLINK_RET_IF(link == NULL);
 
@@ -96,21 +101,25 @@ XLinkError_t XLinkDisconnect(linkId_t id)
 
 XLinkError_t XLinkGetAvailableStreams(linkId_t id)
 {
+    printf("--- XLinkGetAvailableStreams\n");
     (void)id;
     return X_LINK_NOT_IMPLEMENTED;
 }
 
 XLinkError_t XLinkAsyncWriteData()
 {
+    printf("--- XLinkAsyncWriteData\n");
     return X_LINK_NOT_IMPLEMENTED;
 }
 
 XLinkError_t XLinkSetDeviceOpenTimeOutMsec(unsigned int msec)  {
+    printf("--- XLinkSetDeviceOpenTimeOutMsec\n");
     (void)msec;
     return X_LINK_SUCCESS;
 }
 
 XLinkError_t XLinkSetCommonTimeOutMsec(unsigned int msec) {
+    printf("--- XLinkSetCommonTimeOutMsec\n");
     (void)msec;
     return X_LINK_SUCCESS;
 }

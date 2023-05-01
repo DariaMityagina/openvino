@@ -432,6 +432,7 @@ void MyriadExecutor::queueInference(GraphDesc &graphDesc, void *input_data, size
 
 void MyriadExecutor::getResult(GraphDesc &graphDesc, void *result_data, unsigned int result_bytes) {
     ncStatus_t status;
+    printf("getResult\n");
     void *userParam = nullptr;
     status = ncFifoReadElem(graphDesc._outputFifoHandle, result_data, &result_bytes, &userParam);
     if (status != NC_OK) {

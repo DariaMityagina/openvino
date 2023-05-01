@@ -135,7 +135,7 @@ FUNCATTR_WEAK mvLog_t __attribute__ ((weak)) MVLOGLEVEL(MVLOG_UNIT_NAME) = MVLOG
 // #ifdef __shave__
 // __attribute__((section(".laststage")))
 // #endif
-FUNCATTR_WEAK mvLog_t __attribute__ ((weak)) MVLOGLEVEL(default) = MVLOG_ERROR;
+FUNCATTR_WEAK mvLog_t __attribute__ ((weak)) MVLOGLEVEL(default) = MVLOG_DEBUG;
 
 #ifdef __shave__
 __attribute__((section(".laststage")))

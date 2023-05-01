@@ -67,6 +67,7 @@ static XLinkError_t parsePlatformError(xLinkPlatformErrorCode_t rc);
 
 XLinkError_t XLinkInitialize(XLinkGlobalHandler_t* globalHandler)
 {
+    printf("--- XLinkInitialize\n");
 #ifndef __PC__
     mvLogLevelSet(MVLOG_FATAL);
     mvLogDefaultLevelSet(MVLOG_FATAL);
@@ -142,6 +143,7 @@ XLinkError_t XLinkInitialize(XLinkGlobalHandler_t* globalHandler)
 #ifdef __PC__
 
 int XLinkIsDescriptionValid(const deviceDesc_t *in_deviceDesc, const XLinkDeviceState_t state) {
+    printf("--- XLinkIsDescriptionValid\n");
     return XLinkPlatformIsDescriptionValid(in_deviceDesc, state);
 }
 
@@ -149,6 +151,7 @@ XLinkError_t XLinkFindFirstSuitableDevice(XLinkDeviceState_t state,
                                           const deviceDesc_t in_deviceRequirements,
                                           deviceDesc_t *out_foundDevice)
 {
+    printf("--- XLinkFindFirstSuitableDevice\n");
     XLINK_RET_IF(out_foundDevice == NULL);
 
     xLinkPlatformErrorCode_t rc;
@@ -161,6 +164,7 @@ XLinkError_t XLinkFindAllSuitableDevices(XLinkDeviceState_t state,
                                          deviceDesc_t *out_foundDevicesPtr,
                                          const unsigned int devicesArraySize,
                                          unsigned int* out_foundDevicesCount) {
+    printf("--- XLinkFindAllSuitableDevices\n");
     XLINK_RET_IF(out_foundDevicesPtr == NULL);
     XLINK_RET_IF(devicesArraySize <= 0);
     XLINK_RET_IF(out_foundDevicesCount == NULL);
@@ -176,6 +180,7 @@ XLinkError_t XLinkFindAllSuitableDevices(XLinkDeviceState_t state,
 //Called only from app - per device
 XLinkError_t XLinkConnect(XLinkHandler_t* handler)
 {
+    printf("--- XLinkConnect\n");
     XLINK_RET_IF(handler == NULL);
     if (strnlen(handler->devicePath, MAX_PATH_LENGTH) < 2) {
         mvLog(MVLOG_ERROR, "Device path is incorrect");
@@ -221,6 +226,7 @@ XLinkError_t XLinkConnect(XLinkHandler_t* handler)
 
 XLinkError_t XLinkBoot(deviceDesc_t* deviceDesc, const char* binaryPath)
 {
+    printf("--- XLinkBoot\n");
     if (XLinkPlatformBootRemote(deviceDesc, binaryPath) == 0) {
         return X_LINK_SUCCESS;
     }
@@ -229,6 +235,7 @@ XLinkError_t XLinkBoot(deviceDesc_t* deviceDesc, const char* binaryPath)
 }
 
 XLinkError_t XLinkBootFirmware(deviceDesc_t* deviceDesc, const char* firmware, unsigned long length) {
+    printf("--- XLinkBootFirmware\n");
     if (!XLinkPlatformBootFirmware(deviceDesc, firmware, length)) {
         return X_LINK_SUCCESS;
     }
@@ -238,6 +245,7 @@ XLinkError_t XLinkBootFirmware(deviceDesc_t* deviceDesc, const char* firmware, u
 
 XLinkError_t XLinkResetRemote(linkId_t id)
 {
+    printf("--- XLinkResetRemote\n");
     xLinkDesc_t* link = getLinkById(id);
     XLINK_RET_IF(link == NULL);
 
@@ -269,6 +277,7 @@ XLinkError_t XLinkResetRemote(linkId_t id)
 
 XLinkError_t XLinkResetAll()
 {
+    printf("--- XLinkResetAll\n");
 #if defined(NO_BOOT)
     mvLog(MVLOG_INFO, "Devices will not be restarted for this configuration (NO_BOOT)");
 #else
