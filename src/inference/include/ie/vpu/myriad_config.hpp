@@ -60,6 +60,11 @@ DECLARE_VPU_CONFIG(MYRIAD_USB);
 DECLARE_VPU_CONFIG(MYRIAD_THROUGHPUT_STREAMS);
 
 /**
+ * @brief User defined timeout for XLink events (Write/Read)
+ */
+DECLARE_VPU_CONFIG(MYRIAD_TIMEOUT);
+
+/**
  * @brief Default key definition for InferenceEngine::MYRIAD_THROUGHPUT_STREAMS option.
  */
 DECLARE_VPU_CONFIG(MYRIAD_THROUGHPUT_STREAMS_AUTO);
