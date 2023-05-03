@@ -37,7 +37,7 @@ ExecutableNetwork::ExecutableNetwork(
         _config.logLevel(),
         defaultOutput(_config.pluginLogFilePath()));
 
-    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log, _config.timeout);
+    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log, _config.timeout());
     _device = _executor->openDevice(devicePool, _config);
 
     const auto& compileConfig = config.compileConfig();

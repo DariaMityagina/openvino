@@ -122,6 +122,7 @@ IE_SUPPRESS_DEPRECATED_END
     setOption(_pluginLogFilePath,                       config, ie::MYRIAD_PLUGIN_LOG_FILE_PATH);
     setOption(_deviceName,                              config, CONFIG_KEY(DEVICE_ID));
     setOption(_forceReset,       switches,              config, ie::MYRIAD_ENABLE_FORCE_RESET);
+    setOption(_timeout,                                 config, ie::MYRIAD_TIMEOUT);
     setOption(_protocol,         protocols,             config, ie::MYRIAD_PROTOCOL);
     setOption(_watchdogInterval, watchdogIntervals,     config, ie::MYRIAD_WATCHDOG);
     setOption(_deviceConnectTimeout,                    config, ie::MYRIAD_DEVICE_CONNECT_TIMEOUT, parseSeconds);
