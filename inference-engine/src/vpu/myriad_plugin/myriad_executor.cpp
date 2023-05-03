@@ -36,7 +36,8 @@ using namespace vpu;
 static std::mutex device_mutex;
 
 MyriadExecutor::MyriadExecutor(bool forceReset, std::shared_ptr<IMvnc> mvnc,
-    const LogLevel& vpuLogLevel, const Logger::Ptr& log) : _log(log), _mvnc(std::move(mvnc)) {
+    const LogLevel& vpuLogLevel, const Logger::Ptr& log, int timeOut) : _log(log), _mvnc(std::move(mvnc)) {
+    _timeOut = timeOut;
     VPU_PROFILE(MyriadExecutor);
     VPU_THROW_UNLESS(_mvnc, "mvnc is null");
     int ncResetAll = forceReset;

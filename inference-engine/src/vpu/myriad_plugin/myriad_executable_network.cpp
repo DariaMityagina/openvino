@@ -14,6 +14,7 @@
 #include <vpu/utils/runtime_graph.hpp>
 #include <legacy/net_pass.h>
 #include <vpu/compile_env.hpp>
+#include <vpu/configuration/options/myriad_timeout.hpp>
 
 using namespace InferenceEngine;
 
@@ -35,8 +36,8 @@ ExecutableNetwork::ExecutableNetwork(
         "MyriadPlugin",
         _config.logLevel(),
         defaultOutput(_config.pluginLogFilePath()));
-
-    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log);
+    
+    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log, _config.timeout);
     _device = _executor->openDevice(devicePool, _config);
 
     const auto& compileConfig = config.compileConfig();

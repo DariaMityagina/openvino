@@ -159,6 +159,7 @@ struct CompiledGraph final {
     std::uint32_t numShaves = 0;
     std::uint32_t numSlices = 0;
     std::uint32_t numExecutors = 0;
+    int timeout = 0;
 };
 
 //
