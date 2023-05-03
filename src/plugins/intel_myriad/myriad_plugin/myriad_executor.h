@@ -71,10 +71,11 @@ class MyriadExecutor {
     Logger::Ptr _log;
     std::shared_ptr<IMvnc> _mvnc;
     unsigned int _numStages = 0;
+    int _timeOut = 0; 
 
 public:
     MyriadExecutor(bool forceReset, std::shared_ptr<IMvnc> mvnc,
-                   const LogLevel& vpuLogLevel, const Logger::Ptr& log);
+                   const LogLevel& vpuLogLevel, const Logger::Ptr& log, int timeOut);
     ~MyriadExecutor() = default;
 
     /**

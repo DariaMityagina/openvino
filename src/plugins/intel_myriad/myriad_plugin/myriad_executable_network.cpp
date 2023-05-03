@@ -16,6 +16,7 @@
 #include <legacy/net_pass.h>
 #include <vpu/compile_env.hpp>
 #include <vpu/configuration/options/log_level.hpp>
+#include <vpu/configuration/options/myriad_timeout.hpp>
 #include <vpu/configuration/options/throughput_streams.hpp>
 #include <vpu/configuration/options/exclusive_async_requests.hpp>
 #include <vpu/configuration/options/performance_hint.hpp>
@@ -48,8 +49,10 @@ ExecutableNetwork::ExecutableNetwork(
         "MyriadPlugin",
         logLevel,
         consoleOutput());
+    
+    auto timeout = _config.get<TimeoutMyriadValue>();
 
-    _executor = std::make_shared<MyriadExecutor>(false, std::move(mvnc), logLevel, _log);
+    _executor = std::make_shared<MyriadExecutor>(false, std::move(mvnc), logLevel, _log, timeout);
 
     _supportedMetrics = {
         METRIC_KEY(NETWORK_NAME),
