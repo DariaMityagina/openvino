@@ -223,7 +223,6 @@ void ParsedConfig::parse(const std::map<std::string, std::string>& config) {
     setOption(_compileConfig.numSHAVEs,        config, ie::MYRIAD_NUMBER_OF_SHAVES, preprocessCompileOption);
     setOption(_compileConfig.numCMXSlices,     config, ie::MYRIAD_NUMBER_OF_CMX_SLICES, preprocessCompileOption);
     setOption(_compileConfig.numExecutors,     config, ie::MYRIAD_THROUGHPUT_STREAMS, preprocessCompileOption);
-    setOption(_compileConfig.timeout,          config, ie::MYRIAD_TIMEOUT, preprocessCompileOption);
     setOption(_compileConfig.tilingCMXLimitKB, config, ie::MYRIAD_TILING_CMX_LIMIT_KB, preprocessCompileOption);
 
     if ((_compileConfig.numSHAVEs < 0 && _compileConfig.numCMXSlices >= 0) ||

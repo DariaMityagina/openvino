@@ -14,7 +14,6 @@
 #include <vpu/utils/runtime_graph.hpp>
 #include <legacy/net_pass.h>
 #include <vpu/compile_env.hpp>
-#include <vpu/configuration/options/myriad_timeout.hpp>
 
 using namespace InferenceEngine;
 
