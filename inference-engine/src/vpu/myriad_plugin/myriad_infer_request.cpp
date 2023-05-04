@@ -272,7 +272,7 @@ void MyriadInferRequest::GetResult() {
     _executor->getResult(_graphDesc, resultBuffer.data(), static_cast<unsigned>(resultBuffer.size()), m_currentFrameCounter);
     std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_startOfInference);
-    fprintf(globalDebugFile, "E--- %p - %s #%d time=%d\n", this, vput, m_currentFrameCounter, milliseconds); fflush(globalDebugFile);
+    // fprintf(globalDebugFile, "E--- %p - %s #%d time=%d\n", this, vput, m_currentFrameCounter, milliseconds); fflush(globalDebugFile);
 
     for (const auto& output : _outputs) {
         const auto& ieBlobName = output.first;

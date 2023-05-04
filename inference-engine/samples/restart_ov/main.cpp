@@ -16,6 +16,8 @@
 #include <samples/slog.hpp>
 #include <string>
 #include <vector>
+#include <vpu/vpu_plugin_config.hpp>
+#include <vpu/myriad_config.hpp>
 
 #include "sample.h"
 
@@ -220,8 +222,15 @@ int main(int argc, char* argv[]) {
             slog::info << "Loading model to the device" << slog::endl;
             auto config = parseConfig(FLAGS_config);
             config[InferenceEngine::MYRIAD_TIMEOUT] = "1";
+            ExecutableNetwork executable_network;
 
-            ExecutableNetwork executable_network = ie.LoadNetwork(network, FLAGS_d, config);
+            try {
+                executable_network = ie.LoadNetwork(network, FLAGS_d, config);
+            } catch (...) {
+                std::cout << "Error from XLink?\n";
+                continue;
+            }
+
             // -----------------------------------------------------------------------------------------------------
 
             // --------------------------- Step 5. Create infer request
