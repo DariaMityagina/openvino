@@ -218,8 +218,10 @@ int main(int argc, char* argv[]) {
             // --------------------------- Step 4. Loading model to the device
             // ------------------------------------------
             slog::info << "Loading model to the device" << slog::endl;
+            auto config = parseConfig(FLAGS_config);
+            config[InferenceEngine::MYRIAD_TIMEOUT] = "1";
 
-            ExecutableNetwork executable_network = ie.LoadNetwork(network, FLAGS_d, parseConfig(FLAGS_config));
+            ExecutableNetwork executable_network = ie.LoadNetwork(network, FLAGS_d, config);
             // -----------------------------------------------------------------------------------------------------
 
             // --------------------------- Step 5. Create infer request

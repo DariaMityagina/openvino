@@ -112,6 +112,8 @@ XLinkError_t XLinkCloseStream(streamId_t streamId)
     XLINK_INIT_EVENT(event, streamId, XLINK_CLOSE_STREAM_REQ,
         0, NULL, link->deviceHandle);
 
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
+
     XLINK_RET_IF(addEvent(&event, XLINK_NO_RW_TIMEOUT));
     return X_LINK_SUCCESS;
 }
@@ -119,18 +121,30 @@ XLinkError_t XLinkCloseStream(streamId_t streamId)
 XLinkError_t XLinkWriteData(streamId_t streamId, const uint8_t* buffer,
                             int size)
 {
-    XLINK_RET_IF(buffer == NULL);
+    // XLINK_RET_IF(buffer == NULL);
 
     float opTime = 0.0f;
     xLinkDesc_t* link = NULL;
-    XLINK_RET_IF(getLinkByStreamId(streamId, &link));
+
+    if (buffer == NULL || getLinkByStreamId(streamId, &link)) {
+        fprintf(globalDebugFile, "!!! %s %s %d - streamId=%d buffer=%p\n", __FILE__, __func__, __LINE__, streamId, buffer); fflush(globalDebugFile);
+        return X_LINK_ERROR;
+    }
+
+    // XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
 
     xLinkEvent_t event = {0};
     XLINK_INIT_EVENT(event, streamId, XLINK_WRITE_REQ,
         size,(void*)buffer, link->deviceHandle);
 
-    XLINK_RET_IF(addEventWithPerf(&event, &opTime, XLINK_NO_RW_TIMEOUT));
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
+
+    if (addEventWithPerf(&event, &opTime, XLINK_NO_RW_TIMEOUT)) {
+        fprintf(globalDebugFile, "!!! %s %s %d - streamId=%d buffer=%p\n", __FILE__, __func__, __LINE__, streamId, buffer); fflush(globalDebugFile);
+        return X_LINK_ERROR;
+    }
+    // XLINK_RET_IF(addEventWithPerf(&event, &opTime, XLINK_NO_RW_TIMEOUT));
 
     if (glHandler->profEnable) {
         glHandler->profilingData.totalWriteBytes += size;
@@ -152,6 +166,8 @@ XLinkError_t XLinkReadData(streamId_t streamId, streamPacketDesc_t** packet)
     xLinkEvent_t event = {0};
     XLINK_INIT_EVENT(event, streamId, XLINK_READ_REQ,
         0, NULL, link->deviceHandle);
+
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
 
     XLINK_RET_IF(addEventWithPerf(&event, &opTime, XLINK_NO_RW_TIMEOUT));
 
@@ -182,7 +198,9 @@ XLinkError_t XLinkWriteDataWithTimeout(streamId_t streamId, const uint8_t* buffe
     XLINK_INIT_EVENT(event, streamId, XLINK_WRITE_REQ,
         size,(void*)buffer, link->deviceHandle);
 
-    mvLog(MVLOG_WARN,"XLinkWriteDataWithTimeout is not fully supported yet. The XLinkWriteData method is called instead. Desired timeout = %d\n", timeoutMs);
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
+
+    // mvLog(MVLOG_WARN,"XLinkWriteDataWithTimeout is not fully supported yet. The XLinkWriteData method is called instead. Desired timeout = %d\n", timeoutMs);
     XLINK_RET_IF_FAIL(addEventWithPerf(&event, &opTime, XLINK_NO_RW_TIMEOUT));
 
     if( glHandler->profEnable) {
@@ -206,6 +224,8 @@ XLinkError_t XLinkReadDataWithTimeout(streamId_t streamId, streamPacketDesc_t** 
     XLINK_INIT_EVENT(event, streamId, XLINK_READ_REQ,
         0, NULL, link->deviceHandle);
 
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
+
     XLINK_RET_IF_FAIL(addEventWithPerf(&event, &opTime, timeoutMs));
 
     *packet = (streamPacketDesc_t *)event.data;
@@ -224,14 +244,25 @@ XLinkError_t XLinkReadDataWithTimeout(streamId_t streamId, streamPacketDesc_t** 
 XLinkError_t XLinkReleaseData(streamId_t streamId)
 {
     xLinkDesc_t* link = NULL;
-    XLINK_RET_IF(getLinkByStreamId(streamId, &link));
+
+    if (getLinkByStreamId(streamId, &link)) {
+        fprintf(globalDebugFile, "!!! %s %d\n", __func__, __LINE__); fflush(globalDebugFile);
+        return X_LINK_ERROR;
+    }
+    // XLINK_RET_IF(getLinkByStreamId(streamId, &link));
     streamId = EXTRACT_STREAM_ID(streamId);
 
     xLinkEvent_t event = {0};
     XLINK_INIT_EVENT(event, streamId, XLINK_READ_REL_REQ,
         0, NULL, link->deviceHandle);
 
-    XLINK_RET_IF(addEvent(&event, XLINK_NO_RW_TIMEOUT));
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
+
+    if (addEvent(&event, XLINK_NO_RW_TIMEOUT)) {
+        fprintf(globalDebugFile, "!!! %s %d\n", __func__, __LINE__); fflush(globalDebugFile);
+        return X_LINK_ERROR;
+    }
+    // XLINK_RET_IF(addEvent(&event, XLINK_NO_RW_TIMEOUT));
 
     return X_LINK_SUCCESS;
 }
@@ -245,6 +276,8 @@ XLinkError_t XLinkReleaseSpecificData(streamId_t streamId, streamPacketDesc_t* p
     xLinkEvent_t event = {0};
     XLINK_INIT_EVENT(event, streamId, XLINK_READ_REL_SPEC_REQ,
         0, (void*)packetDesc->data, link->deviceHandle);
+    
+    event.sideChanneldebugFile = link->sideChanneldebugFile;
 
     XLINK_RET_IF(addEvent(&event, XLINK_NO_RW_TIMEOUT));
 
@@ -378,14 +411,24 @@ XLinkError_t addEventWithPerf(xLinkEvent_t *event, float* opTime, unsigned int t
 }
 
 static XLinkError_t getLinkByStreamId(streamId_t streamId, xLinkDesc_t** out_link) {
+    if (out_link == NULL) {
+        fprintf(globalDebugFile, "!!! %s %d\n", __func__, __LINE__); fflush(globalDebugFile);
+    }
     ASSERT_XLINK(out_link != NULL);
 
     linkId_t id = EXTRACT_LINK_ID(streamId);
     *out_link = getLinkById(id);
 
-    XLINK_RET_ERR_IF(*out_link == NULL, X_LINK_ERROR);
-    XLINK_RET_ERR_IF(getXLinkState(*out_link) != XLINK_UP,
-                    X_LINK_COMMUNICATION_NOT_OPEN);
+    if (*out_link == NULL) {
+        fprintf(globalDebugFile, "!!! %s %d\n", __func__, __LINE__);
+        XLINK_RET_ERR_IF(*out_link == NULL, X_LINK_ERROR);
+    }
+
+    if (getXLinkState(*out_link) != XLINK_UP) {
+        fprintf(globalDebugFile, "!!! %s %d\n", __func__, __LINE__); fflush(globalDebugFile);
+        XLINK_RET_ERR_IF(getXLinkState(*out_link) != XLINK_UP, X_LINK_COMMUNICATION_NOT_OPEN);
+    }
+
 
     return X_LINK_SUCCESS;
 }

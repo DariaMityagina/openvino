@@ -4,11 +4,14 @@
 
 #ifndef _XLINK_TOOL_H
 #define _XLINK_TOOL_H
+#include <stdio.h>
+extern FILE* globalDebugFile;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
 
 #ifdef NDEBUG  // Release configuration
 
@@ -26,6 +29,8 @@ extern "C"
     #ifndef ASSERT_XLINK
     #define ASSERT_XLINK(condition) do { \
             if(!(condition)) { \
+                fprintf(globalDebugFile, "!!! ASSERT_XLINK %s %u\n", __FILE__, __LINE__); \
+                fflush(globalDebugFile); \
                 mvLog(MVLOG_ERROR, "Assertion Failed: %s \n", #condition); \
                 exit(EXIT_FAILURE); \
             } \
@@ -44,6 +49,8 @@ extern "C"
 #ifndef XLINK_RET_ERR_IF
 #define XLINK_RET_ERR_IF(condition, err) do { \
         if ((condition)) { \
+            fprintf(globalDebugFile, "!!! XLINK_RET_ERR_IF %s %s %d\n", __FILE__, __func__, __LINE__); \
+            fflush(globalDebugFile); \
             mvLog(MVLOG_ERROR, "Condition failed: %s", #condition);\
             return (err); \
         } \
@@ -64,6 +71,8 @@ extern "C"
 #define XLINK_RET_IF_FAIL(call) do { \
         int rc; \
         if ((rc = (call))) { \
+            fprintf(globalDebugFile, "!!! XLINK_RET_IF_FAIL %s %s %d\n", __FILE__, __func__, __LINE__); \
+            fflush(globalDebugFile); \
             mvLog(MVLOG_ERROR, " %s method call failed with an error: %d", #call, rc); \
             return rc; \
         } \

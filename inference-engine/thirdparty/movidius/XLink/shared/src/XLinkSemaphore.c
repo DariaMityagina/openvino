@@ -84,8 +84,11 @@ int XLink_sem_post(XLink_sem_t* sem)
     if (sem->refs < 0) {
         return -1;
     }
-
-    return sem_post(&sem->psem);
+    int rc = sem_post(&sem->psem);
+    if (rc) {
+        fprintf(globalDebugFile, "!!! sem_post %d %p %p\n", rc, sem, sem->psem);
+    }
+    return rc;
 }
 
 int XLink_sem_wait(XLink_sem_t* sem)
@@ -96,6 +99,41 @@ int XLink_sem_wait(XLink_sem_t* sem)
     int ret;
     while(((ret = sem_wait(&sem->psem) == -1) && errno == EINTR))
         continue;
+    XLINK_RET_IF_FAIL(XLink_sem_dec(sem));
+
+    return ret;
+}
+
+extern FILE* globalDebugFile;
+
+int XLink_sem_timedwait_ms(XLink_sem_t* sem, unsigned int ms) {
+    XLINK_RET_ERR_IF(sem == NULL, -1);
+    XLINK_RET_IF_FAIL(XLink_sem_inc(sem));
+    int ret = 0;
+    struct timespec ts;
+    //get now
+    ret = clock_gettime(CLOCK_REALTIME, &ts);
+    if (ret != 0) {
+        return ret;
+    }
+    //add timeout
+    unsigned int sec = ms / 1000;
+    ts.tv_sec += sec;
+    unsigned int rem_ms = ms % 1000;
+    unsigned int ns = rem_ms * 1000000;
+    ts.tv_nsec += ns;
+    if (ts.tv_nsec > (999999999 + 1)) {
+        ts.tv_sec++;
+        ts.tv_nsec -= (999999999 + 1);
+    }
+
+    while(((ret = sem_timedwait(&sem->psem, &ts)) == -1) && errno == EINTR)
+        continue;
+    int isTimeout = (ret == -1) && (errno == ETIMEDOUT);
+    if (isTimeout) {
+        fprintf(globalDebugFile, "TIMEOUT for sem %p - timeout %d\n", sem, ms); fflush(globalDebugFile);
+    }
+
     XLINK_RET_IF_FAIL(XLink_sem_dec(sem));
 
     return ret;

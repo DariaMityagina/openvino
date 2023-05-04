@@ -252,15 +252,15 @@ MVNC_EXPORT_API ncStatus_t ncFifoAllocate(struct ncFifoHandle_t* fifoHandle,
 
 MVNC_EXPORT_API ncStatus_t ncFifoDestroy(struct ncFifoHandle_t** fifoHandle);
 MVNC_EXPORT_API ncStatus_t ncFifoWriteElem(struct ncFifoHandle_t* fifoHandle, const void *inputTensor,
-                        unsigned int * inputTensorLength, void *userParam);
+                        unsigned int * inputTensorLength, void *userParam, unsigned int cc);
 MVNC_EXPORT_API ncStatus_t ncFifoReadElem(struct ncFifoHandle_t* fifoHandle, void *outputData,
-                        unsigned int* outputDataLen, void **userParam);
+                        unsigned int* outputDataLen, void **userParam, unsigned int cc, int timeoutMs);
 
 //Helper functions
 MVNC_EXPORT_API ncStatus_t ncGraphQueueInferenceWithFifoElem(struct ncGraphHandle_t *graphHandle,
                                                              struct ncFifoHandle_t* fifoIn,
                                                              struct ncFifoHandle_t* fifoOut, const void *inputTensor,
-                                                             unsigned int * inputTensorLength, void *userParam);
+                                                             unsigned int * inputTensorLength, void *userParam, unsigned int cc);
 
 #ifdef __cplusplus
 }

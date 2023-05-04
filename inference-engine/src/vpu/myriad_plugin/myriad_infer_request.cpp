@@ -25,6 +25,12 @@ using namespace InferenceEngine;
 
 #define MEMCPY(dst, src, bytes) std::copy_n((src), (bytes), (dst))
 
+static std::mutex my_mutex;
+extern FILE *globalDebugFile;
+uint32_t my_request_count_FD = 0;
+uint32_t my_request_count_ASD = 0;
+uint32_t my_request_count_Unk = 0;
+
 MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
                                        InferenceEngine::InputsDataMap networkInputs,
                                        InferenceEngine::OutputsDataMap networkOutputs,
@@ -38,6 +44,10 @@ MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
         _log(log), _stagesMetaData(blobMetaData), _config(myriadConfig),
         _inputInfo(compilerInputsInfo), _outputInfo(compilerOutputsInfo),
         _graphDesc(graphDesc) {
+
+    //Open debug file
+    // std::lock_guard<std::mutex> my_guard(my_mutex);
+
     VPU_PROFILE(MyriadInferRequest);
 
     const auto& ioStrides = _config.compileConfig().ioStrides;
@@ -92,6 +102,10 @@ void MyriadInferRequest::InferImpl() {
     GetResult();
 }
 
+void MyriadInferRequest::Cancel() {
+    fprintf(globalDebugFile, "Cancel!!! %p\n", this); fflush(globalDebugFile);
+}
+
 void MyriadInferRequest::InferAsync() {
     VPU_PROFILE(InferAsync);
 
@@ -115,12 +129,15 @@ void MyriadInferRequest::InferAsync() {
         return foundBlob;
     };
 
+    uint32_t bs = 0;
+
     for (const auto& input : _inputs) {
         const auto& name = input.first;
         const auto& blob = input.second;
 
         const auto offset = getOffset(name);
         const auto byteSize = blob->byteSize();
+        bs = byteSize;
         const auto requiredSize = vpu::checked_cast<size_t>(offset) + byteSize;
         IE_ASSERT(requiredSize <= inputBuffer.size())  << "MyriadInferRequest::InferAsync()\n"
                                                        << "Input offset is too big. "
@@ -138,8 +155,34 @@ void MyriadInferRequest::InferAsync() {
         }
     }
 
+    uint32_t cc = 0;
+    if (bs == 602112) {
+        my_mutex.lock();
+        cc = my_request_count_FD++;
+        my_mutex.unlock();
+        fprintf(globalDebugFile, "%d FD %p\n", cc, this); fflush(globalDebugFile);
+        m_FDorASD = 0;
+    }
+    else if (bs == 168000 /*450688*/) {
+        my_mutex.lock();
+        cc = my_request_count_ASD++;
+        my_mutex.unlock();
+        fprintf(globalDebugFile, "%d ASD %p\n", cc, this); fflush(globalDebugFile);
+        m_FDorASD = 1;
+    }
+    else {
+        my_mutex.lock();
+        cc = my_request_count_Unk++;
+        my_mutex.unlock();
+        fprintf(globalDebugFile, "%d ??? %d %p\n", cc, bs, this); fflush(globalDebugFile);
+        m_FDorASD = 3;
+    }
+
+    m_currentFrameCounter = cc;
+
+    m_startOfInference = std::chrono::system_clock::now();
     _executor->queueInference(_graphDesc, inputBuffer.data(),
-                              _inputInfo.totalSize, nullptr, 0);
+                              _inputInfo.totalSize, nullptr, 0, cc);
 }
 
 static void copyBlobAccordingUpperBound(
@@ -210,12 +253,26 @@ void MyriadInferRequest::GetResult() {
         const auto& blob = (*it).second;
 
         if (blob->getTensorDesc().getLayout() == getVpuLayout(name)) {
-            _executor->getResult(_graphDesc, blob->buffer(), static_cast<unsigned>(blob->byteSize()));
+            _executor->getResult(_graphDesc, blob->buffer(), static_cast<unsigned>(blob->byteSize()), m_currentFrameCounter);
             return;
         }
     }
+    char vput[30];
+    if (m_FDorASD == 0) {
+        sprintf(vput, "FD");
+    }
+    else if (m_FDorASD == 1) {
+        sprintf(vput, "ASD");
+    }
+    else {
+        sprintf(vput, "unk");
+    }
 
-    _executor->getResult(_graphDesc, resultBuffer.data(), static_cast<unsigned>(resultBuffer.size()));
+    fprintf(globalDebugFile, "B... %p - %s #%d\n", this, vput, m_currentFrameCounter); fflush(globalDebugFile);
+    _executor->getResult(_graphDesc, resultBuffer.data(), static_cast<unsigned>(resultBuffer.size()), m_currentFrameCounter);
+    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_startOfInference);
+    fprintf(globalDebugFile, "E--- %p - %s #%d time=%d\n", this, vput, m_currentFrameCounter, milliseconds); fflush(globalDebugFile);
 
     for (const auto& output : _outputs) {
         const auto& ieBlobName = output.first;

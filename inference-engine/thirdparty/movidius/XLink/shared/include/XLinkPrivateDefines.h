@@ -11,6 +11,7 @@
 #define _XLINKPRIVATEDEFINES_H
 
 #include "XLinkStream.h"
+#include <stdio.h>
 
 #if !defined(XLINK_ALIGN_TO_BOUNDARY)
 # if defined(_WIN32) && !defined(__GNUC__)
@@ -62,6 +63,7 @@ typedef struct xLinkDesc_t {
     xLinkDeviceHandle_t deviceHandle;
     linkId_t id;
     XLink_sem_t dispatcherClosedSem;
+    FILE* sideChanneldebugFile;
 
     //Deprecated fields. Begin.
     int hostClosedFD;
@@ -143,12 +145,14 @@ typedef struct xLinkEventHeader_t{
             uint32_t noSuchStream : 1;
         }bitField;
     }flags;
+    uint8_t pad[940];
 }xLinkEventHeader_t;
 
 typedef struct xLinkEvent_t {
     XLINK_ALIGN_TO_BOUNDARY(64) xLinkEventHeader_t header;
     xLinkDeviceHandle_t deviceHandle;
     void* data;
+    FILE* sideChanneldebugFile;
 }xLinkEvent_t;
 
 #define XLINK_INIT_EVENT(event, in_streamId, in_type, in_size, in_data, in_deviceHandle) do { \

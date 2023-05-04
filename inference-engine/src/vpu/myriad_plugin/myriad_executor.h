@@ -76,10 +76,11 @@ class MyriadExecutor {
     Logger::Ptr _log;
     std::shared_ptr<IMvnc> _mvnc;
     unsigned int _numStages = 0;
+    int _timeOut = 1000;
 
 public:
     MyriadExecutor(bool forceReset, std::shared_ptr<IMvnc> mvnc,
-                   const LogLevel& vpuLogLevel, const Logger::Ptr& log);
+                   const LogLevel& vpuLogLevel, const Logger::Ptr& log, int timeOut);
     ~MyriadExecutor() = default;
 
     /**
@@ -101,9 +102,9 @@ public:
     void deallocateGraph(DevicePtr &device, GraphDesc &graphDesc);
 
     void queueInference(GraphDesc &graphDesc, void *input_data, size_t input_bytes,
-                        void *result_data, size_t result_bytes);
+                        void *result_data, size_t result_bytes, uint32_t cc);
 
-    void getResult(GraphDesc &graphDesc, void *result_data, unsigned int result_bytes);
+    void getResult(GraphDesc &graphDesc, void *result_data, unsigned int result_bytes, uint32_t cc);
 
     static std::string ncStatusToStr(ncGraphHandle_t *graphHandle, ncStatus_t status);
 

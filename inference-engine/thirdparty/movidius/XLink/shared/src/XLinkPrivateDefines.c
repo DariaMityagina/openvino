@@ -57,6 +57,7 @@ streamId_t XLinkAddOrUpdateStream(void *fd, const char *name,
         int idx = 0;
         XLINK_OUT_IF(getNextAvailableStreamIndex(link, &idx));
         stream = &link->availableStreams[idx];
+        stream->df = link->sideChanneldebugFile;        
 
         XLINK_OUT_IF(XLinkStreamInitialize(stream, nextStreamId, name));
     }

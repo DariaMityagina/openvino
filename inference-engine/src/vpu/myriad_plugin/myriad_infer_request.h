@@ -34,6 +34,10 @@ class MyriadInferRequest : public InferenceEngine::IInferRequestInternal {
     std::vector<uint8_t> resultBuffer;
     std::vector<uint8_t> inputBuffer;
 
+    std::chrono::time_point<std::chrono::system_clock> m_startOfInference;
+    uint32_t m_currentFrameCounter;
+    uint32_t m_FDorASD;
+
 public:
     typedef std::shared_ptr<MyriadInferRequest> Ptr;
 
@@ -50,6 +54,7 @@ public:
     void InferImpl() override;
     void InferAsync();
     void GetResult();
+    void Cancel();
 
     std::map<std::string, InferenceEngine::InferenceEngineProfileInfo>
     GetPerformanceCounts() const override;

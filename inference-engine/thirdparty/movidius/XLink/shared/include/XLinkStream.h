@@ -7,6 +7,7 @@
 
 #include "XLinkPublicDefines.h"
 #include "XLinkSemaphore.h"
+#include <stdio.h>
 
 /**
  * @brief Streams opened to device
@@ -32,6 +33,7 @@ typedef struct{
     uint32_t closeStreamInitiated;
 
     XLink_sem_t sem;
+    FILE *df;
 }streamDesc_t;
 
 XLinkError_t XLinkStreamInitialize(

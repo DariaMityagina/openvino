@@ -11,24 +11,25 @@
 #define _XLINKDISPATCHER_H
 
 #include "XLinkPrivateDefines.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 typedef int (*getRespFunction) (xLinkEvent_t*,
-                xLinkEvent_t*);
+                xLinkEvent_t*, FILE *df);
 typedef struct {
-    int (*eventSend) (xLinkEvent_t*);
-    int (*eventReceive) (xLinkEvent_t*);
+    int (*eventSend) (xLinkEvent_t*, FILE *df);
+    int (*eventReceive) (xLinkEvent_t*, xLinkEvent_t* prevEvent, FILE *df);
     getRespFunction localGetResponse;
     getRespFunction remoteGetResponse;
-    void (*closeLink) (void* fd, int fullClose);
+    void (*closeLink) (void* fd, int fullClose, FILE *df);
     void (*closeDeviceFd) (xLinkDeviceHandle_t* deviceHandle);
 } DispatcherControlFunctions;
 
 XLinkError_t DispatcherInitialize(DispatcherControlFunctions *controlFunc);
-XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle);
+XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle, FILE *sideChanneldebugFile);
 int DispatcherClean(xLinkDeviceHandle_t *deviceHandle);
 
 xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event);

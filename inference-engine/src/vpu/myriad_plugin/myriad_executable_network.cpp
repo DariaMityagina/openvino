@@ -36,7 +36,7 @@ ExecutableNetwork::ExecutableNetwork(
         _config.logLevel(),
         defaultOutput(_config.pluginLogFilePath()));
 
-    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log);
+    _executor = std::make_shared<MyriadExecutor>(_config.forceReset(), std::move(mvnc), _config.logLevel(), _log, _config.timeout());
     _device = _executor->openDevice(devicePool, _config);
 
     const auto& compileConfig = config.compileConfig();
@@ -86,7 +86,11 @@ ExecutableNetwork::ExecutableNetwork(
         return;
     }
 
-    const auto& networkName = network.getName();
+    std::string networkName = network.getName();
+    for (auto dev : devicePool) {
+        networkName += "_" + std::to_string(dev->_deviceIdx) + "_" + dev->_name;
+    }
+
     _executor->allocateGraph(_device, _graphDesc, _graphBlob, compiledGraph->blobHeader, compiledGraph->numActiveStages, networkName, _actualNumExecutors);
     if (_config.exclusiveAsyncRequests()) {
         ExecutorManager *executorManager = ExecutorManager::getInstance();
@@ -115,6 +119,9 @@ void ExecutableNetwork::Import(std::istream& strm,
     }
 
     std::string networkName = importedNetworkName;
+    for (auto dev : devicePool) {
+        networkName += "_" + std::to_string(dev->_deviceIdx) + "_" + dev->_name;
+    }
 
     BlobReader blobReader;
     blobReader.parse(_graphBlob);
@@ -187,7 +194,7 @@ InferenceEngine::Parameter ExecutableNetwork::GetMetric(const std::string &name)
 
 InferenceEngine::CNNNetwork ExecutableNetwork::GetExecGraphInfo() {
     auto perfInfo = _executor->getPerfTimeInfo(_graphDesc._graphHandle);
-    if (_graphDesc._name == importedNetworkName)
+    if (_graphDesc._name.find(importedNetworkName) != std::string::npos)
         IE_THROW() <<
         "GetExecGraphInfo() can't be called for ExecutableNetwork that was imported from a compiled blob as far getting"
         " original stage names, types, and topological order from the compiled blob is not implemented for now.";

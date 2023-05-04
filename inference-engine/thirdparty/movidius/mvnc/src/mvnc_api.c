@@ -38,6 +38,8 @@
 #include "watchdog.h"
 #include "xlink_device.h"
 
+extern FILE *globalDebugFile;
+
 #define THERMAL_BUFFER_SIZE 100
 #define THERMAL_THROTTLING_BUFFER_SIZE (THERMAL_BUFFER_SIZE + sizeof(int))
 #define DEBUG_BUFFER_SIZE     120
@@ -1183,7 +1185,8 @@ ncStatus_t ncAvailableDevices(struct ncDeviceDescr_t *deviceDescrPtr,
             X_LINK_UNBOOTED, in_deviceDsc, deviceDescArray, NC_MAX_DEVICES, &amountOfFoundDevices);
     int i;
     for (i = 0; i < (int)amountOfFoundDevices; ++i) {
-        copyXLinkDeviceDescrToNc(&deviceDescArray[i], &deviceDescrPtr[i]);
+        int ri = amountOfFoundDevices - 1 - i;
+        copyXLinkDeviceDescrToNc(&deviceDescArray[ri], &deviceDescrPtr[i]);
     }
 
     *out_countDevices = amountOfFoundDevices;
@@ -1969,6 +1972,8 @@ ncStatus_t ncGraphAllocate(struct ncDeviceHandle_t * deviceHandle,
     CHECK_HANDLE_CORRECT(graphHandle);
     CHECK_HANDLE_CORRECT(graphHeader);
     CHECK_HANDLE_CORRECT(graphBuffer);
+
+    fprintf(globalDebugFile, "GraphAllocate %p %u\n", graphHandle, graphBufferLength);
 
     ncStatus_t rc = NC_OK;
     XLinkError_t xl_error = X_LINK_SUCCESS;
@@ -3183,7 +3188,7 @@ ncStatus_t ncFifoDestroy(struct ncFifoHandle_t ** fifoHandle)
 ncStatus_t ncFifoWriteElem(struct ncFifoHandle_t * fifoHandle,
                            const void *inputTensor,
                            unsigned int * inputTensorLength,
-                           void *userParam)
+                           void *userParam, unsigned int cc)
 {
     CHECK_HANDLE_CORRECT(fifoHandle);
 
@@ -3222,7 +3227,9 @@ ncStatus_t ncFifoWriteElem(struct ncFifoHandle_t * fifoHandle,
             *inputTensorLength = handle->datasize;
             return NC_INVALID_DATA_LENGTH;
     }
+    fprintf(globalDebugFile, "ncFifoWriteElem - begin XLinkWrite #%d\n", cc); fflush(globalDebugFile);
     int rc = XLinkWriteData(handle->streamId, inputTensor, *inputTensorLength);
+    fprintf(globalDebugFile, "ncFifoWriteElem - end XLinkWrite #%d rc-%d\n", cc, rc); fflush(globalDebugFile);
     if (rc != 0)
         return NC_ERROR;
 
@@ -3242,7 +3249,7 @@ ncStatus_t ncFifoWriteElem(struct ncFifoHandle_t * fifoHandle,
 }
 
 ncStatus_t ncFifoReadElem(struct ncFifoHandle_t * fifoHandle, void *outputData,
-                          unsigned int *outputDataLen, void **userParam)
+                          unsigned int *outputDataLen, void **userParam, unsigned int cc, int timeoutMs)
 {
     if (!fifoHandle) {
         mvLog(MVLOG_ERROR, "fifo handle is NULL");
@@ -3288,10 +3295,11 @@ ncStatus_t ncFifoReadElem(struct ncFifoHandle_t * fifoHandle, void *outputData,
         return NC_UNAUTHORIZED;
     }
     streamPacketDesc_t *packet = 0;
-    if (!XLinkReadData(handle->streamId, &packet) && packet) {
+    if (!XLinkReadDataWithTimeout(handle->streamId, &packet, timeoutMs) && packet) {
         mvnc_memcpy(outputData, *outputDataLen, packet->data, packet->length);
         XLinkReleaseData(handle->streamId);
     } else {
+        fprintf(globalDebugFile, "FIFO read timeout for #%d\n", cc); fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Packet reading is failed.");
         return NC_ERROR;
     }
@@ -3338,27 +3346,33 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     CHECK_HANDLE_CORRECT(fifoOut);
 
     if (!fifoIn[0] || !fifoOut[0]) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Fifos data are NULL");
         return NC_INVALID_HANDLE;
     }
-    if (!inFifoCount || !outFifoCount)
+    if (!inFifoCount || !outFifoCount) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         return NC_INVALID_PARAMETERS;
+    }
 
     struct _graphPrivate_t *g = graphHandle->private_data;
 
     if(g) {
         CHECK_MUTEX_SUCCESS_RC(pthread_mutex_lock(&g->dev->graph_stream_m), NC_ERROR);
     } else {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         return NC_NOT_ALLOCATED;
     }
 
     if (!g || g->state != NC_GRAPH_ALLOCATED) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Graph hasn't been allocated");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
         return NC_NOT_ALLOCATED;
     }
 
     if (g->input_count != inFifoCount || g->output_count != outFifoCount) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR,
               "number of input or output fifos is not compatible with graph");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
@@ -3366,6 +3380,7 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     }
 
     if (inFifoCount != 1 || outFifoCount != 1) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR,
               "Currently multiple inputs and outputs are not supported");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
@@ -3375,12 +3390,14 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     struct _fifoPrivate_t *fo = fifoOut[0]->private_data;
     ncStatus_t rc;
     if (fi->state != NC_FIFO_ALLOCATED || fo->state != NC_FIFO_ALLOCATED) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "ffos hasn't been allocated");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
         return NC_NOT_ALLOCATED;
     }
     //WO fifos have no graph access
     if (fo->type == NC_FIFO_HOST_WO) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         //graphs have no access to one of the fifos
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
         return NC_INVALID_PARAMETERS;
@@ -3388,6 +3405,7 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     if (tensorCompatibility(&fi->graph_tensor_desc, &g->input_tensor_desc) != NC_OK ||
         tensorCompatibility(&fo->graph_tensor_desc,
                             &g->output_tensor_desc) != NC_OK) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN,
               "Input/Output tensor shape is not compatible with graph");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
@@ -3407,8 +3425,10 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     if (fi->consumers_remaining == 0) {
         if (!fi->api_read_element && fifoReadAccess(fi)) {//the element was entirely consumed by graphs. This means we need to free it up from XLink
             streamPacketDesc_t* packet = 0;
+            fprintf(globalDebugFile, "not error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
             XLinkError_t rc = XLinkReadData(fi->streamId, &packet);
             if (rc) {
+                fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
                 mvLog(MVLOG_ERROR, "Can't read packet, rc: %s", XLinkErrorToStr(rc));
                 CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&fi->fifo_mutex));
                 fi->dev->state = NC_DEVICE_FAILED;
@@ -3417,6 +3437,7 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
             }
             rc = XLinkReleaseData(fi->streamId);
             if (rc) {
+                fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
                 mvLog(MVLOG_ERROR,"Failed to release data, rc: %s", XLinkErrorToStr(rc));
                 CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&fi->fifo_mutex));
                 fi->dev->state = NC_DEVICE_FAILED;
@@ -3429,6 +3450,7 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     }
     popUserParam(fi, &user_param, 1);
     if (fi->write_count <= fi->consumed_by_graph) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "No point on triggering graph. There are no more elements in the input FIFO");
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&fi->fifo_mutex));
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
@@ -3440,6 +3462,7 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
     CHECK_MUTEX_SUCCESS_RC(pthread_mutex_lock(&fo->fifo_mutex), NC_ERROR);
     rc = pushUserParam(fo, user_param , 0);
     if(rc != NC_OK) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&fo->fifo_mutex));
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
         return rc;
@@ -3449,12 +3472,14 @@ ncStatus_t ncGraphQueueInference(struct ncGraphHandle_t * graphHandle,
 
     rc = trySendCommand(g->dev->graph_monitor_stream_id, &cmd, sizeof(cmd));
     if(rc != 0){
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Can't send trigger request");
         g->dev->state = NC_DEVICE_FAILED;
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
         return rc;
     }
     if(checkGraphMonitorResponse(g->dev->graph_monitor_stream_id)) {
+        fprintf(globalDebugFile, "error ncGraphQueueInference %p %p %s %d", graphHandle, fifoIn, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Can't get trigger response");
         g->dev->state = NC_DEVICE_FAILED;
         CHECK_MUTEX_SUCCESS(pthread_mutex_unlock(&g->dev->graph_stream_m));
@@ -3472,12 +3497,20 @@ ncStatus_t ncGraphQueueInferenceWithFifoElem(struct ncGraphHandle_t *
                                              struct ncFifoHandle_t * fifoOut,
                                              const void *inputTensor,
                                              unsigned int * inputTensorLength,
-                                             void *userParam)
+                                             void *userParam, unsigned int cc)
 {
+    // static int zuzu = 3000;
+    fprintf(globalDebugFile, "FifoWrite begin %d %p %p\n", cc, graphHandle, fifoIn); fflush(globalDebugFile);
     ncStatus_t rc = ncFifoWriteElem(fifoIn, inputTensor, inputTensorLength,
-                                    userParam);
-    if (rc != NC_OK)
+                                    userParam, cc);
+    fprintf(globalDebugFile, "FifoWrite end %d %p %p %d\n", cc, graphHandle, fifoIn, rc); fflush(globalDebugFile);
+    // if (zuzu) zuzu--;
+    if (rc != NC_OK /*|| !zuzu*/)
         return rc;
 
-    return ncGraphQueueInference(graphHandle, &fifoIn, 1, &fifoOut, 1);
+    fprintf(globalDebugFile, "Queue inf begin %d %p %p\n", cc, graphHandle, fifoIn); fflush(globalDebugFile);
+    rc = ncGraphQueueInference(graphHandle, &fifoIn, 1, &fifoOut, 1);
+    fprintf(globalDebugFile, "Queue inf end %u %p %p %d\n", cc, graphHandle, fifoIn, rc); fflush(globalDebugFile);
+
+    return rc;
 }

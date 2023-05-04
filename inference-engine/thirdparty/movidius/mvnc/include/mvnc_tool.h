@@ -26,6 +26,7 @@ do {                                                                \
 do {                                                                \
     int error;                                                      \
     if ((error = (call))) {                                         \
+      fprintf(globalDebugFile, "CHECK_MUTEX_SUCCESS error %s %d", __FILE__, __LINE__);fflush(globalDebugFile);\
       mvLog(MVLOG_ERROR, "%s failed with error: %d", #call, error); \
     }                                                               \
 } while (0)
@@ -36,6 +37,7 @@ do {                                                                \
 do {                                                                \
     int error;                                                      \
     if ((error = (call))) {                                         \
+      fprintf(globalDebugFile, "CHECK_MUTEX_SUCCESS_RC error %s %d", __FILE__, __LINE__);fflush(globalDebugFile);\
       mvLog(MVLOG_ERROR, "%s failed with error: %d", #call, error); \
       return rc;                                                    \
     }                                                               \

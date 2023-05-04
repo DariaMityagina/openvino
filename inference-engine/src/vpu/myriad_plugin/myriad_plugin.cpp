@@ -23,6 +23,9 @@
 
 #include "myriad_plugin.h"
 
+FILE *globalDebugFile = NULL;
+static std::mutex my_mutex;
+
 using namespace InferenceEngine;
 using namespace InferenceEngine::PluginConfigParams;
 using namespace InferenceEngine::VPUConfigParams;
@@ -107,6 +110,23 @@ QueryNetworkResult Engine::QueryNetwork(
 Engine::Engine(std::shared_ptr<IMvnc> mvnc) :
         _mvnc(std::move(mvnc)),
         _metrics(std::make_shared<MyriadMetrics>()) {
+
+    my_mutex.lock();
+    if (globalDebugFile == NULL) {
+        time_t rt;
+        time(&rt);
+        // struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts);
+        // time_t t = time(NULL);
+        struct tm tm = *localtime(&rt);
+        char scfname[100] = {0};
+        sprintf(scfname, "MyriadEvents_%d_%d_%d_%d_%d.txt", tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        globalDebugFile = fopen(scfname, "w");
+        VPU_THROW_UNLESS(globalDebugFile, "globalDebugFile is not opened!");
+    }
+    my_mutex.unlock();
+
+    fprintf(globalDebugFile, "Engine constructor %p\n", this); fflush(globalDebugFile);
+
     VPU_THROW_UNLESS(_mvnc, "mvnc is null");
 
     _pluginName = "MYRIAD";
@@ -118,6 +138,7 @@ IE_SUPPRESS_DEPRECATED_START
         { MYRIAD_CUSTOM_LAYERS, "" },
         { MYRIAD_ENABLE_FORCE_RESET, CONFIG_VALUE(NO) },
         { MYRIAD_THROUGHPUT_STREAMS, "-1" },
+        { MYRIAD_TIMEOUT, "1000"}, 
 
         // Deprecated
         { KEY_VPU_HW_STAGES_OPTIMIZATION, CONFIG_VALUE(YES) },
@@ -134,6 +155,12 @@ IE_SUPPRESS_DEPRECATED_START
     };
 IE_SUPPRESS_DEPRECATED_END
 }
+
+Engine::~Engine() {
+        MyriadExecutor::closeDevices(_devicePool, _mvnc);
+        fprintf(globalDebugFile, "Engine ~destructor %p\n", this); fflush(globalDebugFile);
+        // fclose(globalDebugFile);
+    }
 
 InferenceEngine::IExecutableNetworkInternal::Ptr Engine::ImportNetwork(
         std::istream& model,

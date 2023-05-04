@@ -44,6 +44,10 @@ public:
         return _forceReset;
     }
 
+    int timeout() const {
+        return _timeout;
+    }
+
     bool asyncDma() const {
         return _enableAsyncDma;
     }
@@ -86,6 +90,7 @@ private:
     std::string _pluginLogFilePath;
     bool _forceReset = false;
     bool _enableAsyncDma = true;
+    int _timeout = 1000;
     PowerConfig _powerConfig = PowerConfig::FULL;
     ncDevicePlatform_t _platform = NC_ANY_PLATFORM;
     ncDeviceProtocol_t _protocol = NC_ANY_PROTOCOL;

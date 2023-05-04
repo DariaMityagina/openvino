@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+extern FILE* globalDebugFile;
+
 namespace InferenceEngine {
 
 /**
@@ -392,7 +394,9 @@ private:
                     if (callback) {
                         try {
                             auto local_callback = std::move(callback);
+                            fprintf(globalDebugFile, "call start %p\n", this->_syncRequest.get()); fflush(globalDebugFile);
                             local_callback(currentException);
+                            fprintf(globalDebugFile, "call end %p\n", this->_syncRequest.get()); fflush(globalDebugFile);
                         } catch (...) {
                             currentException = std::current_exception();
                         }

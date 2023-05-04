@@ -3,6 +3,9 @@
 //
 
 #include <stdio.h>
+#include <time.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
@@ -62,7 +65,7 @@ static int usb_read(libusb_device_handle *f, void *data, size_t size);
 // Helpers declaration. End.
 // ------------------------------------
 
-
+#define LOCAL_ROUND_UP(x, a)   ((__typeof__(x))((((uint32_t)(x) + a - 1) / a) * a))
 
 // ------------------------------------
 // Wrappers declaration. Begin.
@@ -336,7 +339,9 @@ int pciePlatformRead(void *f, void *data, int size)
 // Wrappers implementation. End.
 // ------------------------------------
 
-
+extern FILE *globalDebugFile;
+void *prev_error_handle = NULL;
+int prev_error = 0;
 
 // ------------------------------------
 // Helpers implementation. Begin.
@@ -344,19 +349,47 @@ int pciePlatformRead(void *f, void *data, int size)
 #ifdef USE_USB_VSC
 int usb_read(libusb_device_handle *f, void *data, size_t size)
 {
+    int retryCount = 1;
     const int chunk_size = DEFAULT_CHUNKSZ;
+    int rc = 0;
+    uint32_t devhnd = (uint32_t)(f) & 0xFFFFF;
+    int timeoutCount = 1;
+    int orig_size = size;
+    // fprintf(globalDebugFile, "%x usb_read of size %ld\n", devhnd, size); fflush(globalDebugFile);
     while(size > 0)
     {
-        int bt, ss = (int)size;
+        int bt = 0, ss = size; //LOCAL_ROUND_UP((int)size, 1024);
         if(ss > chunk_size)
             ss = chunk_size;
 #if (defined(_WIN32) || defined(_WIN64))
         int rc = usb_bulk_read(f, USB_ENDPOINT_IN, (unsigned char *)data, ss, &bt, XLINK_USB_DATA_TIMEOUT);
 #else
-        int rc = libusb_bulk_transfer(f, USB_ENDPOINT_IN,(unsigned char *)data, ss, &bt, XLINK_USB_DATA_TIMEOUT);
+            rc = libusb_bulk_transfer(f, USB_ENDPOINT_IN,(unsigned char *)data, ss, &bt, 500 /*XLINK_USB_DATA_TIMEOUT*/);
 #endif
-        if(rc)
-            return rc;
+        if (rc == LIBUSB_ERROR_TIMEOUT) {
+            fprintf(globalDebugFile, "%x - alive %d\n", devhnd, timeoutCount++); fflush(globalDebugFile);
+            continue;
+        }
+        if(rc) {
+            //sleep and retry
+            // usleep(30000);
+            if (retryCount) {
+                if (prev_error_handle == NULL || prev_error != rc) {
+                    prev_error_handle = f;
+                    prev_error = rc;
+                    struct timespec ts; //timespec_get(&ts, TIME_UTC);
+                    clock_gettime(CLOCK_REALTIME, &ts);
+                    char buff[200]; char timeStamp[200];
+                    strftime(buff, sizeof buff, "%T", gmtime(&ts.tv_sec));
+                    sprintf(timeStamp, "%s.%06ld", buff, ts.tv_nsec / 1000);
+                    fprintf(globalDebugFile, "%s USB Receive error %x rc-%d origSize-%d ss-%d bt-%d rCount-%d\n", timeStamp, devhnd, rc, orig_size, ss, bt, retryCount); fflush(globalDebugFile);
+                }
+                retryCount--;
+            }
+            else {
+                return rc;
+            }
+        }
         data = ((char *)data) + bt;
         size -= bt;
     }
@@ -365,10 +398,11 @@ int usb_read(libusb_device_handle *f, void *data, size_t size)
 
 int usb_write(libusb_device_handle *f, const void *data, size_t size)
 {
+    int retryCount = 1;
     const int chunk_size = DEFAULT_CHUNKSZ;
     while(size > 0)
     {
-        int bt, ss = (int)size;
+        int bt = 0, ss = (int)size;
         if(ss > chunk_size)
             ss = chunk_size;
 #if (defined(_WIN32) || defined(_WIN64) )
@@ -376,8 +410,24 @@ int usb_write(libusb_device_handle *f, const void *data, size_t size)
 #else
         int rc = libusb_bulk_transfer(f, USB_ENDPOINT_OUT, (unsigned char *)data, ss, &bt, XLINK_USB_DATA_TIMEOUT);
 #endif
-        if(rc)
-            return rc;
+        if(rc) {
+            //sleep and retry
+            // usleep(30000);
+            if (retryCount) {
+                uint32_t devhnd = (uint32_t)(f) & 0xFFFFF;
+                struct timespec ts; //timespec_get(&ts, TIME_UTC);
+                clock_gettime(CLOCK_REALTIME, &ts);
+                char buff[200]; char timeStamp[200];
+                strftime(buff, sizeof buff, "%T", gmtime(&ts.tv_sec));
+                sprintf(timeStamp, "%s.%06ld", buff, ts.tv_nsec / 1000);
+                fprintf(globalDebugFile, "%s USB Send error %x %d ss-%d bt-%d rCount-%d\n", timeStamp, devhnd, rc, ss, bt, retryCount); fflush(globalDebugFile);
+                retryCount--;
+            }
+            else {
+                return rc;
+            }
+        }
+
         data = (char *)data + bt;
         size -= bt;
     }

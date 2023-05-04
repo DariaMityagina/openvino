@@ -35,8 +35,12 @@ using namespace vpu;
 
 static std::mutex device_mutex;
 
+extern FILE *globalDebugFile;
+
 MyriadExecutor::MyriadExecutor(bool forceReset, std::shared_ptr<IMvnc> mvnc,
-    const LogLevel& vpuLogLevel, const Logger::Ptr& log) : _log(log), _mvnc(std::move(mvnc)) {
+    const LogLevel& vpuLogLevel, const Logger::Ptr& log, int timeOut) : _log(log), _mvnc(std::move(mvnc)) {
+    _timeOut = timeOut;
+    fprintf(globalDebugFile, "Created MyriadExecutor %p with timeout=%d\n", this, _timeOut); fflush(globalDebugFile);
     VPU_PROFILE(MyriadExecutor);
     VPU_THROW_UNLESS(_mvnc, "mvnc is null");
     int ncResetAll = forceReset;
@@ -91,6 +95,9 @@ ncStatus_t MyriadExecutor::bootNextDevice(std::vector<DevicePtr> &devicePool,
     int enableAsyncDma = config.asyncDma();
     int lastDeviceIdx = devicePool.empty() ? -1 : devicePool.back()->_deviceIdx;
 
+    
+    fprintf(globalDebugFile, "boot device %s\n", configDevName.c_str()); fflush(globalDebugFile);
+    
     ncStatus_t statusOpen = NC_ERROR;
 
     DeviceDesc device;
@@ -401,7 +408,7 @@ void MyriadExecutor::allocateGraph(DevicePtr &device, GraphDesc &graphDesc,
 }
 
 void MyriadExecutor::queueInference(GraphDesc &graphDesc, void *input_data, size_t input_bytes,
-                    void *result_data, size_t result_bytes) {
+                    void *result_data, size_t result_bytes, uint32_t cc) {
     VPU_PROFILE(queueInference);
 #ifndef NDEBUG
     if (auto dumpFileName = std::getenv("IE_VPU_DUMP_INPUT_FILE_NAME")) {
@@ -420,21 +427,22 @@ void MyriadExecutor::queueInference(GraphDesc &graphDesc, void *input_data, size
 
     ncStatus_t status = ncGraphQueueInferenceWithFifoElem(graphDesc._graphHandle,
                                 graphDesc._inputFifoHandle, graphDesc._outputFifoHandle,
-                                input_data, &graphDesc._inputDesc.totalSize, nullptr);
+                                input_data, &graphDesc._inputDesc.totalSize, nullptr, cc);
     if (status != NC_OK) {
         IE_THROW() << "Failed to queue inference: " << ncStatusToStr(graphDesc._graphHandle, status);
     }
 
     if (result_data != nullptr && result_bytes != 0) {
-        getResult(graphDesc, result_data, static_cast<unsigned>(result_bytes));
+        getResult(graphDesc, result_data, static_cast<unsigned>(result_bytes), cc);
     }
 }
 
-void MyriadExecutor::getResult(GraphDesc &graphDesc, void *result_data, unsigned int result_bytes) {
+void MyriadExecutor::getResult(GraphDesc &graphDesc, void *result_data, unsigned int result_bytes, uint32_t cc) {
     ncStatus_t status;
     void *userParam = nullptr;
-    status = ncFifoReadElem(graphDesc._outputFifoHandle, result_data, &result_bytes, &userParam);
+    status = ncFifoReadElem(graphDesc._outputFifoHandle, result_data, &result_bytes, &userParam, cc, _timeOut);
     if (status != NC_OK) {
+        fprintf(globalDebugFile, "%s throws error for #%d - timeout=%d\n", __func__, cc, _timeOut); fflush(globalDebugFile);
         IE_THROW() << "Failed to read output from FIFO: " << ncStatusToStr(graphDesc._graphHandle, status);
     }
 }

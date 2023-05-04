@@ -17,6 +17,8 @@
 #define MVLOG_UNIT_NAME watchdog
 #include "XLinkLog.h"
 
+extern FILE *globalDebugFile;
+
 namespace {
 
 using namespace std;
@@ -28,7 +30,13 @@ using namespace Watchdog;
  */
 class NoDueOnFirstCall : public IDevice {
 public:
-    NoDueOnFirstCall(IDevice* original) : m_originalPtr(original) {}
+    NoDueOnFirstCall(IDevice* original) : m_originalPtr(original) {
+        //fprintf(globalDebugFile, "NoDueOnFirstCall constructor %p\n", this);fflush(globalDebugFile);
+    }
+
+    ~NoDueOnFirstCall() {
+        //fprintf(globalDebugFile, "NoDueOnFirstCall destructor %p\n", this);fflush(globalDebugFile);
+    }
 
     void keepAlive(const time_point& current_time) noexcept override  {
         m_originalPtr->keepAlive(current_time);
@@ -89,8 +97,12 @@ private:
 //------------- Watchdog implementation -------------
 
 WatchdogImpl::WatchdogImpl() {
+    
+    //fprintf(globalDebugFile, "WatchdogImpl constructor %p\n", this);fflush(globalDebugFile);
+
     int rc = pthread_mutex_init(&routineLock, NULL);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl constructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         throw std::runtime_error("failed to initialize \"routineLock\" mutex. rc: " + std::to_string(rc));
     }
 
@@ -98,16 +110,20 @@ WatchdogImpl::WatchdogImpl() {
     pthread_condattr_t attr;
     rc = pthread_condattr_init(&attr);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl constructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         throw std::runtime_error("failed to initialize condition variable attribute. rc: " + std::to_string(rc));
     }
 
-    AutoScope attrDestroy([&attr]{
-        if (pthread_condattr_destroy(&attr) != 0)
+    AutoScope attrDestroy([&attr, this]{
+        if (pthread_condattr_destroy(&attr) != 0) {
+            //fprintf(globalDebugFile, "error WatchdogImpl constructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
             mvLog(MVLOG_ERROR, "Failed to destroy condition variable attribute.");
+        }
     });
 
     rc = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl constructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         throw std::runtime_error("failed to set condition variable clock. rc: " + std::to_string(rc));
     }
 
@@ -117,11 +133,17 @@ WatchdogImpl::WatchdogImpl() {
 #endif // !(defined(__APPLE__) || defined(_WIN32))
 
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl constructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         throw std::runtime_error("failed to initialize \"wakeUpPingThread\" condition variable. rc: " + std::to_string(rc));
     }
+
+    //fprintf(globalDebugFile, "WatchdogImpl constructor all well %p\n", this);fflush(globalDebugFile);
 }
 
 WatchdogImpl::~WatchdogImpl() {
+
+    //fprintf(globalDebugFile, "WatchdogImpl destructor %p\n", this);fflush(globalDebugFile);
+
     mvLog(MVLOG_INFO, "watchdog terminated\n");
     try
     {
@@ -130,14 +152,17 @@ WatchdogImpl::~WatchdogImpl() {
             mvLog(MVLOG_WARN, "[%p] device, stop watching due to watchdog termination\n", item->getHandle());
         }
     } catch (const std::exception & ex) {
-        mvLog(MVLOG_ERROR, "error %s", ex.what());
+        //fprintf(globalDebugFile, "error WatchdogImpl destructor %p %s %s %d\n", this, ex.what(), __FILE__, __LINE__);fflush(globalDebugFile);
+        mvLog(MVLOG_ERROR, "error %s\n", ex.what());
     } catch (...) {
+        //fprintf(globalDebugFile, "error WatchdogImpl destructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "unknown error");
     }
 
     threadRunning = false;
     int rc = pthread_cond_broadcast(&wakeUpPingThread);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl destructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "failed to unblock threads blocked on the \"wakeUpPingThread\". rc=%d", rc);
     }
 
@@ -147,13 +172,17 @@ WatchdogImpl::~WatchdogImpl() {
 
     rc = pthread_mutex_destroy(&routineLock);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl destructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "failed to destroy the \"routineLock\". rc=%d", rc);
     }
 
     rc = pthread_cond_destroy(&wakeUpPingThread);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl destructor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "failed to destroy the \"wakeUpPingThread\". rc=%d", rc);
     }
+
+    //fprintf(globalDebugFile, "WatchdogImpl destructor end %p\n", this);fflush(globalDebugFile);
 }
 
 bool WatchdogImpl::registerDevice(IDevice* device) {
@@ -192,6 +221,7 @@ bool WatchdogImpl::registerDevice(IDevice* device) {
 
     int rc = pthread_cond_broadcast(&wakeUpPingThread);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl registerDevice %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "failed to unblock threads blocked on the \"wakeUpPingThread\". rc=%d", rc);
     }
 
@@ -220,6 +250,7 @@ bool WatchdogImpl::removeDevice(IDevice* device) {
     // wake up thread since we might select removed device as nex to be ping, and there is no more devices available
     int rc = pthread_cond_broadcast(&wakeUpPingThread);
     if (rc != 0) {
+        //fprintf(globalDebugFile, "error WatchdogImpl removeDevice %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_WARN, "failed to unblock threads blocked on the \"wakeUpPingThread\". rc=%d", rc);
     }
 
@@ -253,6 +284,7 @@ void WatchdogImpl::waitFor(const milliseconds sleepInterval) {
 #endif // defined(__APPLE__)
 
     if (rc != 0 && rc != ETIMEDOUT) {
+        //fprintf(globalDebugFile, "error WatchdogImpl waitFor %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         throw std::runtime_error("Failed to perform wait in a loop for " + std::to_string(sleepInterval.count()) + " ms. rc: " + std::to_string(rc));
     }
 }
@@ -275,6 +307,7 @@ void WatchdogImpl::watchdogRoutine() noexcept {
                           duration_cast<std::chrono::milliseconds>(steady_clock::now() - now).count());
                 }
                 if (device->isTimeout()) {
+                    fprintf(globalDebugFile, "error WatchdogImpl watchdogRoutine %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
                     mvLog(MVLOG_ERROR, "[%p] device, not respond, removing from watchdog\n", device->getHandle());
                     // marking device as deleted, to prevent double resource free from wd_unregister_device
                     removedDevices[device->getHandle()] = device;
@@ -292,6 +325,7 @@ void WatchdogImpl::watchdogRoutine() noexcept {
                                                 });
             // if for some reason we have empty devices list but watchdog is active
             if (minInterval == watchedDevices.end()) {
+                //fprintf(globalDebugFile, "error WatchdogImpl watchdogRoutine %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
                 mvLog(MVLOG_INFO, "no active devices to watch, stopping  Watchdog thread\n");
                 threadRunning = false;
                 break;
@@ -313,8 +347,10 @@ void WatchdogImpl::watchdogRoutine() noexcept {
 
         } while (threadRunning);
     } catch (const std::exception &ex) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdogRoutine %p %s %s %d\n", this, ex.what(), __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "error %s", ex.what());
     } catch (...) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdogRoutine %p %s %d\n", this, __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "unknown error");
     }
 
@@ -344,8 +380,10 @@ wd_error_t watchdog_create(WatchdogHndl_t** out_watchdogHndl) {
         *out_watchdogHndl = tmpWdHndl;
         return WD_ERRNO;
     } catch (const std::exception& ex) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_create %s %s %d\n", ex.what(), __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "error %s", ex.what());
     } catch (...) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_create %s %d\n", __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "unknown error");
     }
 
@@ -355,6 +393,7 @@ wd_error_t watchdog_create(WatchdogHndl_t** out_watchdogHndl) {
 
 void watchdog_destroy(WatchdogHndl_t* watchdogHndl) {
     if (watchdogHndl == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_destroy %s %d\n", __FILE__, __LINE__);fflush(globalDebugFile);
         return;
     }
 
@@ -367,16 +406,19 @@ void watchdog_destroy(WatchdogHndl_t* watchdogHndl) {
 
 wd_error_t watchdog_register_device(WatchdogHndl_t* watchdogHndl, WdDeviceHndl_t* deviceHandle) {
     if (watchdogHndl == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog handle is null\n");
         return WD_NOTINITIALIZED;
     }
 
     if (deviceHandle == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog device handle is null\n");
         return WD_NOTINITIALIZED;
     }
 
     if (deviceHandle->m_device == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog device not initialized. handle=%p\n", deviceHandle);
         return WD_NOTINITIALIZED;
     }
@@ -385,13 +427,16 @@ wd_error_t watchdog_register_device(WatchdogHndl_t* watchdogHndl, WdDeviceHndl_t
         WatchdogImpl* watchdog = watchdogHndl->m_watchdog;
         auto device = reinterpret_cast<IDevice*>(deviceHandle->m_device);
         if (!watchdog->registerDevice(device)) {
+            //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
             mvLog(MVLOG_WARN, "cannot register device\n");
             return WD_FAIL;
         }
         return WD_ERRNO;
     } catch (const std::exception & ex) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %s %d\n",  ex.what(), __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "failed to register device: %s\n", ex.what());
     } catch (...) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_register_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "failed to register device (%p)\n", deviceHandle);
     }
 
@@ -400,16 +445,19 @@ wd_error_t watchdog_register_device(WatchdogHndl_t* watchdogHndl, WdDeviceHndl_t
 
 wd_error_t watchdog_unregister_device(WatchdogHndl_t* watchdogHndl, WdDeviceHndl_t* deviceHandle) {
     if (watchdogHndl == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog handle is null\n");
         return WD_NOTINITIALIZED;
     }
 
     if (deviceHandle == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog device handle is null\n");
         return WD_NOTINITIALIZED;
     }
 
     if (deviceHandle->m_device == nullptr) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "watchdog device not initialized. handle=%p\n", deviceHandle);
         return WD_NOTINITIALIZED;
     }
@@ -418,13 +466,16 @@ wd_error_t watchdog_unregister_device(WatchdogHndl_t* watchdogHndl, WdDeviceHndl
         WatchdogImpl* watchdog = watchdogHndl->m_watchdog;
         auto device = reinterpret_cast<IDevice*>(deviceHandle->m_device);
         if (!watchdog->removeDevice(device)) {
+            //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
             mvLog(MVLOG_WARN, "cannot remove device\n");
             return WD_FAIL;
         }
         return WD_ERRNO;
     } catch (const std::exception & ex) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %s %d\n",  ex.what(), __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "error %s", ex.what());
     } catch (...) {
+        //fprintf(globalDebugFile, "error WatchdogImpl watchdog_unregister_device %s %d\n",  __FILE__, __LINE__);fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "unknown error");
     }
 

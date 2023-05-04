@@ -31,7 +31,7 @@ IE_SUPPRESS_DEPRECATED_START
         ie::MYRIAD_ENABLE_HW_ACCELERATION,
         ie::MYRIAD_CUSTOM_LAYERS,
         ie::MYRIAD_THROUGHPUT_STREAMS,
-
+        ie::MYRIAD_TIMEOUT,
         //
         // Public deprecated
         //

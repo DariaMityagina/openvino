@@ -14,6 +14,8 @@
 
 #include <algorithm>
 
+extern FILE* globalDebugFile;
+
 namespace {
 
 using namespace std;
@@ -98,6 +100,7 @@ bool XLinkDevice::isTimeout() const noexcept {
     }
 
     if (m_lastPingTime - m_lastPongTime > milliseconds(kDeviceHangTimeout)) {
+        fprintf(globalDebugFile, "error XLinkDevice::isTimeout %p  Reset all is next\n", this); fflush(globalDebugFile);
         // cleaning xlink connection - allowing abort all semaphores waiting in other threads
         XLinkResetAll();
         return true;
@@ -111,24 +114,31 @@ void* XLinkDevice::getHandle() const noexcept {
 }
 
 bool XLinkDevice::sendPingMessage() {
-    XLINK_RET_ERR_IF(pthread_mutex_lock(&m_devicePrivate.dev_stream_m), false);
+    if (pthread_mutex_lock(&m_devicePrivate.dev_stream_m) != 0) {
+        fprintf(globalDebugFile, "error sendPingMessage %p %s %d\n", this, __FILE__, __LINE__); fflush(globalDebugFile);
+        return false;
+    }
+    // XLINK_RET_ERR_IF(cc, false);
 
     deviceCommand_t config = {};
     config.type = DEVICE_WATCHDOG_PING;
 
     // xlink ping acknowledge interval shouldn't be more then expected ping interval
+    // fprintf(globalDebugFile, "sendPingMessage begin %p\n", this); fflush(globalDebugFile);
     XLinkError_t rc = XLinkWriteDataWithTimeout(m_devicePrivate.device_mon_stream_id,
             (const uint8_t*)&config, sizeof(config), kDeviceHangTimeout);
 
     if(pthread_mutex_unlock(&m_devicePrivate.dev_stream_m) != 0) {
+        fprintf(globalDebugFile, "error sendPingMessage %p %s %d\n", this, __FILE__, __LINE__); fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Failed to unlock m_devicePrivate.dev_stream_m");
     }
 
     if (rc != X_LINK_SUCCESS) {
+        fprintf(globalDebugFile, "error sendPingMessage %p %s %d\n", this, __FILE__, __LINE__); fflush(globalDebugFile);
         mvLog(MVLOG_ERROR, "Failed send ping message: %s", XLinkErrorToStr(rc));
         return false;
     }
-
+    // fprintf(globalDebugFile, "sendPingMessage success %p\n", this); fflush(globalDebugFile);
     return true;
 }
 

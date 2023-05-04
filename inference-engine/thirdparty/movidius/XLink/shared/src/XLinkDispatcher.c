@@ -52,6 +52,11 @@ typedef enum {
     EVENT_SERVED,
 } xLinkEventState_t;
 
+// typedef struct {
+//     sem_t psem;
+//     int refs;
+// } XLink_sem_t;
+
 typedef struct xLinkEventPriv_t {
     xLinkEvent_t packet;
     xLinkEvent_t *retEv;
@@ -95,8 +100,58 @@ typedef struct {
     eventQueueHandler_t lQueue; //local queue
     eventQueueHandler_t rQueue; //remote queue
     localSem_t eventSemaphores[MAXIMUM_SEMAPHORES];
+    FILE *sideChanneldebugFile;
+    uint32_t uniqueID;
+    FILE *dispatcherDebugFile;
+    uint32_t errorActive;
+    xLinkEvent_t prevEvent;
 } xLinkSchedulerState_t;
 
+void eventToString(xLinkEvent_t *event, char *string) {
+    int pos = 0;
+    xLinkEventHeader_t header = event->header;
+    pos += sprintf(string + pos, "%d_%s id_%d stream_%d size_%d flags_%x", header.type, TypeToStr(header.type), header.id, header.streamId, header.size, header.flags);
+}
+
+void printEvent(FILE *df, xLinkEvent_t *ev) {
+    xLinkEventHeader_t header = ev->header;
+    //fprintf(df, "%d_%s id_%d stream_%d size_%d flags_%x", header.type, TypeToStr(header.type), header.id, header.streamId, header.size, header.flags);
+}
+
+void printEventPrivate(FILE *df, xLinkEventPriv_t *privEvent) {
+    //fprintf(df, "retEv_%p isServed_%d, origin_%d, sem_%p, data_%p packet_", privEvent->retEv, privEvent->isServed, privEvent->origin, privEvent->sem, privEvent->data);
+    printEvent(df, &privEvent->packet);
+}
+
+void printQueue(FILE *df, eventQueueHandler_t *queue) {
+    // ////fprintf(df, "cur-%p curProc-%p base-%p end-%p\n", queue->cur, queue->curProc, queue->base, queue->end);
+    for (int i =0; i < MAX_EVENTS; i++) {
+        if (queue->q[i].isServed != EVENT_SERVED) {
+            //fprintf(df, "%d %p - ", i, &(queue->q[i]));
+            printEventPrivate(df, &(queue->q[i]));
+            //fprintf(df, "\n");
+        }
+    }
+}
+
+void printSchedulerState(xLinkSchedulerState_t *curr) {
+    FILE *df = curr->dispatcherDebugFile;
+    //fprintf(df, "-----------------Scheduler State--------\n");
+    //fprintf(df, "queueProcPriority-%d  resetXLink-%d  semaphores-%d\n", curr->queueProcPriority, curr->resetXLink, curr->semaphores);
+    //fprintf(df, "---localQueue\n");
+    printQueue(df, &curr->lQueue);
+    //fprintf(df, "---remoteQueue\n");
+    printQueue(df, &curr->rQueue);
+    //fprintf(df, "------semaphores\n");
+    for(int i = 0; i < MAXIMUM_SEMAPHORES; i++) {
+        localSem_t *lsem = &(curr->eventSemaphores[i]);
+        if (lsem->sem.refs > 0) {
+            //fprintf(df, "%d threadId-%x semP-%p refs-%d\n", i, lsem->threadId, &lsem->sem, lsem->sem.refs);
+        }
+    }
+    //fprintf(df, "------------------------------------------\n");
+    
+}
 
 // ------------------------------------
 // Data structures declaration. Begin.
@@ -142,8 +197,8 @@ static void* eventSchedulerRun(void* ctx);
 #endif
 
 static int isEventTypeRequest(xLinkEventPriv_t* event);
-static void postAndMarkEventServed(xLinkEventPriv_t *event);
-static int createUniqueID();
+static void postAndMarkEventServed(xLinkEventPriv_t *event, FILE *df);
+static int createUniqueID(xLinkSchedulerState_t *curr);
 static int findAvailableScheduler();
 static xLinkSchedulerState_t* findCorrespondingScheduler(void* xLinkFD);
 
@@ -164,7 +219,7 @@ static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr);
 
 static int dispatcherClean(xLinkSchedulerState_t* curr);
 static int dispatcherReset(xLinkSchedulerState_t* curr);
-static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t state);
+static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t state, FILE *df);
 
 static XLinkError_t sendEvents(xLinkSchedulerState_t* curr);
 
@@ -203,7 +258,7 @@ XLinkError_t DispatcherInitialize(DispatcherControlFunctions *controlFunc) {
     return X_LINK_SUCCESS;
 }
 
-XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle)
+XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle, FILE *sideChanneldebugFile)
 {
     ASSERT_XLINK(deviceHandle);
 #ifdef __PC__
@@ -223,13 +278,20 @@ XLinkError_t DispatcherStart(xLinkDeviceHandle_t *deviceHandle)
         return -1;
     }
 
+    char dispFileName[255];
+    sprintf(dispFileName, "Dispatcher_%p.txt", &schedulerState[idx]);
+    FILE *df = fopen(dispFileName, "w");
+    //fprintf(df, "%s %d\n", __func__, __LINE__); fflush(df);
+
     memset(&schedulerState[idx], 0, sizeof(xLinkSchedulerState_t));
 
+    schedulerState[idx].dispatcherDebugFile = df;
     schedulerState[idx].semaphores = 0;
     schedulerState[idx].queueProcPriority = 0;
 
     schedulerState[idx].resetXLink = 0;
     schedulerState[idx].deviceHandle = *deviceHandle;
+    schedulerState[idx].sideChanneldebugFile = sideChanneldebugFile;
     schedulerState[idx].schedulerId = idx;
 
     schedulerState[idx].lQueue.cur = schedulerState[idx].lQueue.q;
@@ -333,6 +395,9 @@ int DispatcherClean(xLinkDeviceHandle_t *deviceHandle) {
 
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(deviceHandle->xLinkFD);
     XLINK_RET_IF(curr == NULL);
+    FILE *df = curr->dispatcherDebugFile;
+
+    //fprintf(df, "%s %d\n", __func__, __LINE__);
 
     return dispatcherClean(curr);
 }
@@ -341,8 +406,10 @@ xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
 {
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(event->deviceHandle.xLinkFD);
     XLINK_RET_ERR_IF(curr == NULL, NULL);
+    FILE *df = curr->dispatcherDebugFile;
 
     if(curr->resetXLink) {
+        //fprintf(df, "!!! resetXLink %s %u\n", __func__, __LINE__); 
         return NULL;
     }
     mvLog(MVLOG_DEBUG, "Receiving event %s %d\n", TypeToStr(event->header.type), origin);
@@ -350,6 +417,7 @@ xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
     while(((rc = XLink_sem_wait(&curr->addEventSem)) == -1) && errno == EINTR)
         continue;
     if (rc) {
+        //fprintf(df, "!!! can't wait semaphore %s %u\n", __func__, __LINE__); 
         mvLog(MVLOG_ERROR,"can't wait semaphore\n");
         return NULL;
     }
@@ -357,15 +425,20 @@ xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
     XLink_sem_t *sem = NULL;
     xLinkEvent_t* ev;
     if (origin == EVENT_LOCAL) {
-        event->header.id = createUniqueID();
+        int newsem = 0;
+        event->header.id = createUniqueID(curr);
         sem = getSem(pthread_self(), curr);
         if (!sem) {
             sem = createSem(curr);
+            newsem = 1;
         }
         if (!sem) {
+            //fprintf(df, "!!! No more semaphores. %s %u\n", __func__, __LINE__); 
+
             mvLog(MVLOG_WARN,"No more semaphores. Increase XLink or OS resources\n");
             if (XLink_sem_post(&curr->addEventSem)) {
                 mvLog(MVLOG_ERROR,"can't post semaphore\n");
+                //fprintf(df, "!!! can't post semaphore %s %u\n", __func__, __LINE__); 
             }
 
             return NULL;
@@ -376,9 +449,11 @@ xLinkEvent_t* DispatcherAddEvent(xLinkEventOrigin_t origin, xLinkEvent_t *event)
         ev = addNextQueueElemToProc(curr, &curr->rQueue, event, NULL, origin);
     }
     if (XLink_sem_post(&curr->addEventSem)) {
+        //fprintf(df, "!!! can't post semaphore %s %u\n", __func__, __LINE__); 
         mvLog(MVLOG_ERROR,"can't post semaphore\n");
     }
     if (XLink_sem_post(&curr->notifyDispatcherSem)) {
+        //fprintf(df, "!!! can't post semaphore %s %u\n", __func__, __LINE__); 
         mvLog(MVLOG_ERROR, "can't post semaphore\n");
     }
     return ev;
@@ -388,34 +463,40 @@ int DispatcherWaitEventComplete(xLinkDeviceHandle_t *deviceHandle, unsigned int 
 {
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(deviceHandle->xLinkFD);
     ASSERT_XLINK(curr != NULL);
+    FILE *df = curr->sideChanneldebugFile;
 
     XLink_sem_t* id = getSem(pthread_self(), curr);
     if (id == NULL) {
+        //fprintf(df, "!!! %s %d\n", __func__, __LINE__); 
         return -1;
     }
 
     int rc = 0;
     if (timeoutMs != XLINK_NO_RW_TIMEOUT) {
-        // This is a workaround for sem_timedwait being influenced by the system clock change.
-        // This is a temporary solution. TODO: replace this with something more efficient.
-        while (timeoutMs--) {
-            rc = XLink_sem_trywait(id);
-            if (!rc) {
-                break;
-            } else {
-#if (defined(_WIN32) || defined(_WIN64) )
-                Sleep(1);
-#else
-                usleep(1000);
-#endif
-            }
-        }
+        rc = XLink_sem_timedwait_ms(id, timeoutMs);
+//         // This is a workaround for sem_timedwait being influenced by the system clock change.
+//         // This is a temporary solution. TODO: replace this with something more efficient.
+//         while (timeoutMs--) {
+//             rc = XLink_sem_trywait(id);
+//             if (!rc) {
+//                 break;
+//             } else {
+// #if (defined(_WIN32) || defined(_WIN64) )
+//                 Sleep(1);
+// #else
+//                 usleep(1000);
+// #endif
+//             }
+//         }
     } else {
-        while(((rc = XLink_sem_wait(id)) == -1) && errno == EINTR)
+        while(((rc = XLink_sem_wait(id)) == -1) && errno == EINTR) {
+            //fprintf(df, "!!! sem wait strange thing %s %d\n", __func__, __LINE__); 
             continue;
+        }
     }
 #ifdef __PC__
     if (rc) {
+            //fprintf(df, "!!! xlink reset issued because of rc=%d %s %d\n", rc, __func__, __LINE__); 
             xLinkEvent_t event = {0};
             event.header.type = XLINK_RESET_REQ;
             event.deviceHandle = *deviceHandle;
@@ -426,6 +507,7 @@ int DispatcherWaitEventComplete(xLinkDeviceHandle_t *deviceHandle, unsigned int 
             while(((rc = XLink_sem_wait(id)) == -1) && errno == EINTR)
                 continue;
             if (id == NULL || rc) {
+                //fprintf(df, "!!! %s %d\n", __func__, __LINE__); 
                 dispatcherReset(curr);
             }
         }
@@ -466,6 +548,7 @@ int DispatcherUnblockEvent(eventId_t id, xLinkEventType_t type, streamId_t strea
 {
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(xlinkFD);
     ASSERT_XLINK(curr != NULL);
+    FILE *df = curr->dispatcherDebugFile;
 
     mvLog(MVLOG_DEBUG,"unblock\n");
     xLinkEventPriv_t* blockedEvent;
@@ -484,6 +567,7 @@ int DispatcherUnblockEvent(eventId_t id, xLinkEventType_t type, streamId_t strea
                   (int)blockedEvent->packet.header.id,
                   TypeToStr((int)blockedEvent->packet.header.type));
             blockedEvent->isServed = EVENT_READY;
+            //fprintf(df, "%s:%d id_%d type_%d stream_%d\n", __func__, __LINE__, blockedEvent->packet.header.id, blockedEvent->packet.header.type, stream); 
             if (XLink_sem_post(&curr->notifyDispatcherSem)){
                 mvLog(MVLOG_ERROR, "can't post semaphore\n");
             }
@@ -503,6 +587,7 @@ int DispatcherServeEvent(eventId_t id, xLinkEventType_t type, streamId_t stream,
 {
     xLinkSchedulerState_t* curr = findCorrespondingScheduler(xlinkFD);
     ASSERT_XLINK(curr != NULL);
+    FILE *df = curr->sideChanneldebugFile;
 
     xLinkEventPriv_t* event;
     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, 1);
@@ -518,6 +603,7 @@ int DispatcherServeEvent(eventId_t id, xLinkEventType_t type, streamId_t stream,
                   (int)event->packet.header.id,
                   TypeToStr((int)event->packet.header.type));
             event->isServed = EVENT_SERVED;
+            //fprintf(df, "%s:%d id_%d type_%d stream_%d\n", __func__, __LINE__, event->packet.header.id, event->packet.header.type, stream); 
             XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, 1);
             return 1;
         }
@@ -622,26 +708,37 @@ static void* eventReader(void* ctx)
     xLinkSchedulerState_t *curr = (xLinkSchedulerState_t*)ctx;
     XLINK_RET_ERR_IF(curr == NULL, NULL);
 
+    FILE *df = curr->dispatcherDebugFile;
+
     xLinkEvent_t event = { 0 };// to fix error C4700 in win
     event.header.id = -1;
     event.deviceHandle = curr->deviceHandle;
+    event.sideChanneldebugFile = curr->sideChanneldebugFile;
 
     mvLog(MVLOG_INFO,"eventReader thread started");
 
     while (!curr->resetXLink) {
-        int sc = glControlFunc->eventReceive(&event);
+        
+        int sc = glControlFunc->eventReceive(&event, &curr->prevEvent, df);
 
         mvLog(MVLOG_DEBUG,"Reading %s (scheduler %d, fd %p, event id %d, event stream_id %u, event size %u)\n",
               TypeToStr(event.header.type), curr->schedulerId, event.deviceHandle.xLinkFD, event.header.id, event.header.streamId, event.header.size);
 
         if (sc) {
+            if (!curr->errorActive) {
+                //fprintf(df, "%s %d Failed to receive event (err %d)\n", __func__, __LINE__, sc);
+                curr->errorActive = 1;
+            }
             mvLog(MVLOG_DEBUG,"Failed to receive event (err %d)", sc);
             XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, NULL);
-            dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING);
-            dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED);
+            dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING, df);
+            dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED, df);
             XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
             continue;
         }
+        char zzz[1024];
+        eventToString(&event, zzz);
+        //fprintf(df,"%s %d Received new event %s\n", __func__, __LINE__, zzz);
 
         DispatcherAddEvent(EVENT_REMOTE, &event);
 
@@ -749,27 +846,33 @@ static int isEventTypeRequest(xLinkEventPriv_t* event)
     return event->packet.header.type < XLINK_REQUEST_LAST;
 }
 
-static void postAndMarkEventServed(xLinkEventPriv_t *event)
+static void postAndMarkEventServed(xLinkEventPriv_t *event, FILE *df)
 {
+    //fprintf(df, "%s %d - process event privEv-%p\n", __func__, __LINE__, event);
     if (event->retEv){
         // the xLinkEventPriv_t slot pointed by "event" will be
         // re-cycled as soon as we mark it as EVENT_SERVED,
         // so before that, we copy the result event into XLink API layer
         *(event->retEv) = event->packet;
+        //fprintf(df, "%s %d - copy packet for privEv-%p\n", __func__, __LINE__, event);
     }
     if(event->sem){
+        //fprintf(df, "%s %d - posting sem for privEv-%p\n", __func__, __LINE__, event);
         if (XLink_sem_post(event->sem)) {
             mvLog(MVLOG_ERROR,"can't post semaphore\n");
+            //fprintf(df, "%s %d - error can't post sem for privEv-%p\n", __func__, __LINE__, event);
         }
     }
 
     event->isServed = EVENT_SERVED;
+    //fprintf(df, "%s %d - event is served for privEv-%p\n", __func__, __LINE__);
+    
 }
 
-static int createUniqueID()
+static int createUniqueID(xLinkSchedulerState_t *curr)
 {
-    static int id = 0xa;
-    return id++;
+    // static int id = 0xa;
+    return curr->uniqueID++;
 }
 
 int findAvailableScheduler()
@@ -806,18 +909,28 @@ static xLinkSchedulerState_t* findCorrespondingScheduler(void* xLinkFD)
 }
 
 static int dispatcherRequestServe(xLinkEventPriv_t * event, xLinkSchedulerState_t* curr){
-    XLINK_RET_IF(curr == NULL);
-    XLINK_RET_IF(!isEventTypeRequest(event));
+    if (curr == NULL) {
+        return X_LINK_ERROR;
+    }
+    FILE *df = curr->dispatcherDebugFile;
+    // XLINK_RET_IF(curr == NULL);
+    if (!isEventTypeRequest(event)) {
+        return X_LINK_ERROR;
+    }
+    // XLINK_RET_IF(!isEventTypeRequest(event));
     xLinkEventHeader_t *header = &event->packet.header;
     if (header->flags.bitField.block){ //block is requested
         event->isServed = EVENT_BLOCKED;
+        //fprintf(df, "%s:%d - event blocked! _%d type_%d\n", __func__, __LINE__, event->packet.header.id, event->packet.header.type);  
     } else if(header->flags.bitField.localServe == 1 ||
               (header->flags.bitField.ack == 0
                && header->flags.bitField.nack == 1)){ //this event is served locally, or it is failed
-        postAndMarkEventServed(event);
+        // ////fprintf(df, "%s:%d - post and mark id_%d type_%d\n", __func__, __LINE__, event->packet.header.id, event->packet.header.type);  
+        postAndMarkEventServed(event, df);
     } else if (header->flags.bitField.ack == 1
               && header->flags.bitField.nack == 0){
         event->isServed = EVENT_PENDING;
+        //fprintf(df, "%s:%d - event marked as pending! id_%d type_%d\n", __func__, __LINE__, event->packet.header.id, event->packet.header.type);  
         mvLog(MVLOG_DEBUG,"------------------------UNserved %s\n",
               TypeToStr(event->packet.header.type));
     }else{
@@ -829,6 +942,7 @@ static int dispatcherRequestServe(xLinkEventPriv_t * event, xLinkSchedulerState_
 static int dispatcherResponseServe(xLinkEventPriv_t * event, xLinkSchedulerState_t* curr)
 {
     XLINK_RET_ERR_IF(curr == NULL, 1);
+    FILE *df = curr->dispatcherDebugFile;
     XLINK_RET_ERR_IF(isEventTypeRequest(event), 1);
     int i = 0;
     for (i = 0; i < MAX_EVENTS; i++)
@@ -840,23 +954,27 @@ static int dispatcherResponseServe(xLinkEventPriv_t * event, xLinkSchedulerState
             header->id == evHeader->id &&
             header->type == evHeader->type - XLINK_REQUEST_LAST -1)
         {
+            // ////fprintf(df, "%s:%d - post and mark2 id_%d type_%d\n", __func__, __LINE__, event->packet.header.id, event->packet.header.type);  
             mvLog(MVLOG_DEBUG,"----------------------ISserved %s\n",
                   TypeToStr(header->type));
             //propagate back flags
             header->flags = evHeader->flags;
-            postAndMarkEventServed(&curr->lQueue.q[i]);
+            postAndMarkEventServed(&curr->lQueue.q[i], df);
             break;
         }
     }
     if (i == MAX_EVENTS) {
+        fprintf(globalDebugFile, "!!! error no request for this response: %s %d\n", TypeToStr(event->packet.header.type), event->origin);
         mvLog(MVLOG_FATAL,"no request for this response: %s %d\n", TypeToStr(event->packet.header.type), event->origin);
         mvLog(MVLOG_DEBUG,"#### (i == MAX_EVENTS) %s %d %d\n", TypeToStr(event->packet.header.type), event->origin, (int)event->packet.header.id);
         for (i = 0; i < MAX_EVENTS; i++)
         {
             xLinkEventHeader_t *header = &curr->lQueue.q[i].packet.header;
+            // // //fprintf(df, "%s:%d - listEventsInQueue id_%d type_%d(%s) isServed_%d\n", __func__, __LINE__, header->id, header->type, TypeToStr(header->type), 
+            // curr->lQueue.q[i].isServed);  
 
-            mvLog(MVLOG_DEBUG,"%d) header->id %i, header->type %s(%i), curr->lQueue.q[i].isServed %i, EVENT_PENDING %i\n", i, (int)header->id
-            , TypeToStr(header->type), header->type, curr->lQueue.q[i].isServed, EVENT_PENDING);
+            // mvLog(MVLOG_DEBUG,"%d) header->id %i, header->type %s(%i), curr->lQueue.q[i].isServed %i, EVENT_PENDING %i\n", i, (int)header->id
+            // , TypeToStr(header->type), header->type, curr->lQueue.q[i].isServed, EVENT_PENDING);
 
         }
         return 1;
@@ -911,10 +1029,12 @@ static xLinkEventPriv_t* getNextQueueElemToProc(eventQueueHandler_t *q ){
 static xLinkEvent_t* addNextQueueElemToProc(xLinkSchedulerState_t* curr,
                                             eventQueueHandler_t *q, xLinkEvent_t* event,
                                             XLink_sem_t* sem, xLinkEventOrigin_t o){
+    FILE *df = curr->dispatcherDebugFile;
     xLinkEvent_t* ev;
     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, NULL);
     xLinkEventPriv_t* eventP = getNextElementWithState(q->base, q->end, q->cur, EVENT_SERVED);
     if (eventP == NULL) {
+        //fprintf(df, "!!! getNextElementWithState returned NULL %s %u\n", __func__, __LINE__); 
         mvLog(MVLOG_ERROR, "getNextElementWithState returned NULL");
         XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
         return NULL;
@@ -935,12 +1055,19 @@ static xLinkEvent_t* addNextQueueElemToProc(xLinkSchedulerState_t* curr,
     eventP->isServed = EVENT_ALLOCATED;
     CIRCULAR_INCREMENT_BASE(q->cur, q->end, q->base);
     XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
+
+    char zzz[1024];
+    eventToString(event, zzz);
+    //fprintf(df, "\n%s %d Added event to queue: privEvent-%p (%p) %s\n", __func__, __LINE__, eventP, event, zzz); 
+    printSchedulerState(curr);
+
     return ev;
 }
 
 static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
 {
     XLINK_RET_ERR_IF(curr == NULL, NULL);
+    FILE *df = curr->dispatcherDebugFile;
 
     int rc;
     while(((rc = XLink_sem_wait(&curr->notifyDispatcherSem)) == -1) && errno == EINTR)
@@ -953,7 +1080,12 @@ static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, NULL);
     event = searchForReadyEvent(curr);
     if (event) {
+        char zzz[1024];
+        eventToString(&event->packet, zzz);
+        //fprintf(df, "\n%s %d Got next event to process with meth1 privEvent-%p (%p) %s\n", __func__, __LINE__, event, event->packet, zzz); 
+        
         XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
+
         return event;
     }
 
@@ -963,10 +1095,23 @@ static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
 
     event = getNextQueueElemToProc(hPriorityQueue);
     if (event) {
+        char zzz[1024];
+        eventToString(&event->packet, zzz);
+        //fprintf(df, "\n%s %d Got next event to process with meth2 privEvent-%p (%p) %s\n", __func__, __LINE__, event, event->packet, zzz); 
+        
         XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
         return event;
     }
     event = getNextQueueElemToProc(lPriorityQueue);
+
+    if (event) {
+        char zzz[1024];
+        eventToString(&event->packet, zzz);
+        //fprintf(df, "\n%s %d Got next event to process with meth3 privEvent-%p (%p) %s\n", __func__, __LINE__, event, event->packet, zzz); 
+    }
+    else {
+        //fprintf(df, "\n%s %d Got NO event to process\n", __func__, __LINE__);
+    }
 
     XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, NULL);
     return event;
@@ -974,6 +1119,9 @@ static xLinkEventPriv_t* dispatcherGetNextEvent(xLinkSchedulerState_t* curr)
 
 static int dispatcherClean(xLinkSchedulerState_t* curr)
 {
+    FILE *df = curr->dispatcherDebugFile;
+    // fprintf(df, "%s %d\n", __func__, __LINE__);
+
     XLINK_RET_ERR_IF(pthread_mutex_lock(&clean_mutex), 1);
     if (curr->schedulerId == -1) {
         mvLog(MVLOG_WARN,"Scheduler has already been reset or cleaned");
@@ -995,15 +1143,15 @@ static int dispatcherClean(xLinkSchedulerState_t* curr)
               TypeToStr(event->packet.header.type), event->isServed);
 
         XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, 1);
-        postAndMarkEventServed(event);
+        postAndMarkEventServed(event, df);
         XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, 1);
         event = dispatcherGetNextEvent(curr);
     }
 
     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, 1);
 
-    dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING);
-    dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED);
+    dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING, df);
+    dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED, df);
 
     curr->schedulerId = -1;
     curr->resetXLink = 1;
@@ -1030,7 +1178,9 @@ static int dispatcherClean(xLinkSchedulerState_t* curr)
 
 static int dispatcherReset(xLinkSchedulerState_t* curr)
 {
+
     ASSERT_XLINK(curr != NULL);
+    FILE *df = curr->dispatcherDebugFile;
 
     glControlFunc->closeDeviceFd(&curr->deviceHandle);
     if(dispatcherClean(curr)) {
@@ -1042,7 +1192,7 @@ static int dispatcherReset(xLinkSchedulerState_t* curr)
         mvLog(MVLOG_DEBUG,"can't post dispatcherClosedSem\n");
     }
 
-    glControlFunc->closeLink(curr->deviceHandle.xLinkFD, 1);
+    glControlFunc->closeLink(curr->deviceHandle.xLinkFD, 1, df);
     mvLog(MVLOG_DEBUG,"Reset Successfully\n");
     return 0;
 }
@@ -1051,6 +1201,7 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
     int res;
     xLinkEventPriv_t* event;
     xLinkEventPriv_t response;
+    FILE *df = curr->dispatcherDebugFile;
 
     while (!curr->resetXLink) {
         event = dispatcherGetNextEvent(curr);
@@ -1065,6 +1216,7 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
 
         if(event->packet.deviceHandle.xLinkFD
            != curr->deviceHandle.xLinkFD) {
+            //fprintf(df, "!!! error error !!! big bubu %s:%d", __func__, __LINE__);
             mvLog(MVLOG_FATAL,"The file descriptor mismatch between the event and the scheduler.\n"
                               "    Event: id=%d, fd=%p"
                               "    Scheduler fd=%p",
@@ -1094,7 +1246,11 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
             toSend = &response.packet;
         }
 
-        res = getResp(&event->packet, &response.packet);
+        response.packet.sideChanneldebugFile = curr->sideChanneldebugFile;
+        toSend->sideChanneldebugFile = curr->sideChanneldebugFile;
+        
+        res = getResp(&event->packet, &response.packet, df);
+
         if (isEventTypeRequest(event)) {
             XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, X_LINK_ERROR);
             if (event->origin == EVENT_LOCAL) { //we need to do this for locals only
@@ -1124,10 +1280,10 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
                 }
 #endif // __PC__
                 XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, X_LINK_ERROR);
-                if (glControlFunc->eventSend(toSend) != 0) {
+                if (glControlFunc->eventSend(toSend, df) != 0) {
                     XLINK_RET_ERR_IF(pthread_mutex_lock(&(curr->queueMutex)) != 0, X_LINK_ERROR);
-                    dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING);
-                    dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED);
+                    dispatcherFreeEvents(&curr->lQueue, EVENT_PENDING, df);
+                    dispatcherFreeEvents(&curr->lQueue, EVENT_BLOCKED, df);
                     XLINK_RET_ERR_IF(pthread_mutex_unlock(&(curr->queueMutex)) != 0, X_LINK_ERROR);
                     mvLog(MVLOG_ERROR, "Event sending failed");
                 }
@@ -1150,7 +1306,7 @@ static XLinkError_t sendEvents(xLinkSchedulerState_t* curr) {
     return X_LINK_SUCCESS;
 }
 
-static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t state) {
+static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t state, FILE *df) {
     if(queue == NULL) {
         return;
     }
@@ -1158,7 +1314,7 @@ static void dispatcherFreeEvents(eventQueueHandler_t *queue, xLinkEventState_t s
     xLinkEventPriv_t* event = getNextElementWithState(queue->base, queue->end, queue->base, state);
     while (event != NULL) {
         mvLog(MVLOG_DEBUG, "Event is %s, size is %d, Mark it served\n", TypeToStr(event->packet.header.type), event->packet.header.size);
-        postAndMarkEventServed(event);
+        postAndMarkEventServed(event, df);
         event = getNextElementWithState(queue->base, queue->end, queue->base, state);
     }
 }

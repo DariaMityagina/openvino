@@ -7,6 +7,7 @@
 #include "stdint.h"
 #include "string.h"
 #include "stdlib.h"
+#include <time.h>
 
 #include "XLink.h"
 #include "XLinkErrorUtils.h"
@@ -59,7 +60,7 @@ static XLinkError_t parsePlatformError(xLinkPlatformErrorCode_t rc);
 // Helpers declaration. End.
 // ------------------------------------
 
-
+extern FILE* globalDebugFile;
 
 // ------------------------------------
 // API implementation. Begin.
@@ -190,6 +191,27 @@ XLinkError_t XLinkConnect(XLinkHandler_t* handler)
     int connectStatus = XLinkPlatformConnect(handler->devicePath2, handler->devicePath,
                                              link->deviceHandle.protocol, &link->deviceHandle.xLinkFD);
 
+    //Open the debug file
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char scfname[100] = {0};
+    sprintf(scfname, "MyriadXSideChannel_%s_%d_%d_%d_%d_%d.txt", handler->devicePath,
+    tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    link->sideChanneldebugFile = fopen(scfname, "w");
+    if(link->sideChanneldebugFile == NULL) {
+        printf("\n\n\nsideChannel log file not open %s\n\n\n", scfname);
+    }
+	
+    if (globalDebugFile != NULL) {
+        struct timespec ts; //timespec_get(&ts, TIME_UTC);
+        clock_gettime(CLOCK_REALTIME, &ts);
+        char buff[200]; char timeStamp[200];
+        strftime(buff, sizeof buff, "%Y-%m-%dT%T", gmtime(&ts.tv_sec));
+        sprintf(timeStamp, "%s.%06ld", buff, ts.tv_nsec / 1000);
+        fprintf(globalDebugFile, "%s XLinkConnect %s %s %p\n", timeStamp, handler->devicePath2, handler->devicePath, link->deviceHandle.xLinkFD);
+        fflush(globalDebugFile);
+    }
+
     if (connectStatus < 0) {
         /**
          * Connection may be unsuccessful at some amount of first tries.
@@ -199,7 +221,7 @@ XLinkError_t XLinkConnect(XLinkHandler_t* handler)
     }
 
     XLINK_RET_ERR_IF(
-        DispatcherStart(&link->deviceHandle) != X_LINK_SUCCESS, X_LINK_TIMEOUT);
+        DispatcherStart(&link->deviceHandle, link->sideChanneldebugFile) != X_LINK_SUCCESS, X_LINK_TIMEOUT);
 
     xLinkEvent_t event = {0};
 
