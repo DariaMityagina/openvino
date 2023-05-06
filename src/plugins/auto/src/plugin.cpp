@@ -142,6 +142,7 @@ std::vector<DeviceInformation> MultiDeviceInferencePlugin::ParseMetaDevices(cons
     };
 
     auto getDefaultDeviceID = [this](std::string deviceName) -> std::string {
+        LOG_DEBUG_TAG("getDefaultDeviceID:%s", deviceName);
         auto supportedMetrics = GetCore()->GetMetric(deviceName, METRIC_KEY(SUPPORTED_METRICS)).as<std::vector<std::string>>();
         if (std::find(supportedMetrics.begin(), supportedMetrics.end(), METRIC_KEY(SUPPORTED_CONFIG_KEYS)) != supportedMetrics.end()) {
             auto supportKeys = GetCore()->GetMetric(deviceName, METRIC_KEY(SUPPORTED_CONFIG_KEYS)).as<std::vector<std::string>>();
@@ -537,6 +538,7 @@ std::list<DeviceInformation> MultiDeviceInferencePlugin::GetValidDevice(
 
     for (auto& item : metaDevices) {
         if (item.deviceName.find("CPU") == 0) {
+            LOG_DEBUG_TAG("GetValidDevice CPU.push_back");
             CPU.push_back(item);
             continue;
         }
@@ -545,6 +547,7 @@ std::list<DeviceInformation> MultiDeviceInferencePlugin::GetValidDevice(
             continue;
         }
         if (item.deviceName.find("VPUX") == 0) {
+            LOG_DEBUG_TAG("GetValidDevice VPUX.push_back");
             VPUX.push_back(item);
             continue;
         }

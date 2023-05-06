@@ -165,6 +165,7 @@ void AutoSchedule::GenerateWorkers(const std::string& device,
     idleWorkerRequests.set_capacity(numRequests);
     int num = 0;
     for (auto&& workerRequest : workerRequests) {
+        LOG_DEBUG_TAG("GenerateWorkers device %s", device);
         workerRequest._inferRequest = {executableNetwork->CreateInferRequest(), executableNetwork._so};
         auto* workerRequestPtr = &workerRequest;
         workerRequestPtr->_index = num++;
@@ -235,6 +236,7 @@ bool AutoSchedule::selectOtherDevice(const std::string& currentDeviceName) {
             } else {
                 realDeviceName = deviceName;
             }
+            LOG_DEBUG_TAG("selectOtherDevice device %s", deviceName);
             const auto CurrentDeviceIter = deviceChecker().checkAndReturnIfDeviceInList<DeviceInformation>(realDeviceName, _autoSContext->_devicePriorities);
             if (CurrentDeviceIter != _autoSContext->_devicePriorities.end()) {
                 if (_autoSContext->_devicePriorities.size() == 1) {
@@ -439,6 +441,7 @@ void AutoSchedule::init(const ScheduleContext::Ptr& sContext) {
         // _loadContext[ACTUALDEVICE]
         if (isActualDevCPU || !_autoSContext->_startupfallback) {
             _loadContext[CPU].isEnabled = false;
+            LOG_INFO_TAG("isActualDevCPU");
         } else {
             const auto CPUIter = deviceChecker().checkAndReturnIfDeviceInList("CPU", _autoSContext->_devicePriorities);
             // if have CPU Device,  enable _loadContext[CPU]
@@ -474,8 +477,10 @@ void AutoSchedule::init(const ScheduleContext::Ptr& sContext) {
             if (i == _nCTputDeviceNums - 1 &&
                 _pCTPUTLoadContext[i].deviceInfo.deviceName.find("CPU") != std::string::npos) {
                 cpuLoads.push_back(_pCTPUTLoadContext[i].task);
+                LOG_INFO_TAG("cpuLoads.push_back(");
             } else {
                 otherDevicesloads.push_back(_pCTPUTLoadContext[i].task);
+                LOG_INFO_TAG("otherDevicesloads.push_back(");
             }
         }
     }
@@ -511,6 +516,7 @@ void AutoSchedule::init(const ScheduleContext::Ptr& sContext) {
                 // first, wait for all the remaining requests to finish
                 for (auto& iter : _workerRequests["CPU_HELP"]) {
                     try {
+                        LOG_INFO_TAG("CPU_HELP infer");
                         iter._inferRequest._ptr->Wait(IE::InferRequest::WaitMode::RESULT_READY);
                     } catch (const IE::Exception& iie) {
                         LOG_DEBUG_TAG("No infer results expected, infer in CPU_HELP throw some errors: %s", iie.what());
@@ -668,6 +674,7 @@ void AutoSchedule::TryToLoadNetWork(AutoLoadContext& context, const std::string&
     // if they are same, do not need to load again
     curDevIsCPU = (context.deviceInfo.deviceName.find("CPU") != std::string::npos);
     if (curDevIsCPU) {
+        LOG_INFO_TAG("curDevIsCPU");
         auto compare = [](std::map<std::string, std::string>& a,
         std::map<std::string, std::string>& b) -> bool {
             if (a.size() != b.size()) {
@@ -884,6 +891,7 @@ AutoSchedule::~AutoSchedule() {
                 }
             } else {
                 LOG_INFO_TAG("%s:infer:%ld", _workerRequest.first.c_str(), count);
+                LOG_INFO_TAG("CPU_HELP:infer: -- %ld", _cpuHelpInferCount);
                 auto n = reqAllStartTimes.size();
                 Time time;
                 while (!reqAllStartTimes.empty()) {
