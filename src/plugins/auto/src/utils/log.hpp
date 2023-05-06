@@ -66,7 +66,7 @@ inline std::string getFileName(const std::string& filePath) {
 }
 
 inline int getDebugLevel() {
-    return parseInteger(std::getenv("OPENVINO_LOG_LEVEL"));
+    return parseInteger("5");
 }
 const int debug_level = getDebugLevel();
 enum class LogLevel : uint32_t {
