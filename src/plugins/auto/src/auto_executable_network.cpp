@@ -216,8 +216,9 @@ IE::Parameter AutoExecutableNetwork::GetMetric(const std::string& name) const {
                     }
                     real = (std::max)(requests, optimalBatchSize);
                 } else if (deviceInfo.deviceName.find("VPUX") != std::string::npos) {
-                    real = 8u;
+                    real = 4u;
                 } else {
+                    LOG_WARNING_TAG("Device, since deviceInfo.deviceName.find(VPUX) == std::string::npos :%s", deviceInfo.deviceName.c_str());
                     real = upperBoundStreamsNum ? 2 * upperBoundStreamsNum : defaultNumForTPUT;
                 }
             } else {
