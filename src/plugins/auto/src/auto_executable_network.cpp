@@ -217,10 +217,10 @@ IE::Parameter AutoExecutableNetwork::GetMetric(const std::string& name) const {
                     LOG_WARNING_TAG("Device, optimalBatchSize > 1) :%s", deviceInfo.deviceName.c_str());
                     real = (std::max)(requests, optimalBatchSize);
                 } else if (deviceInfo.deviceName.find("VPUX") != std::string::npos) {
-                    real = 4u;
+                    real = 8u;
                 } else {
                     LOG_WARNING_TAG("Device, since deviceInfo.deviceName.find(VPUX) == std::string::npos :%s", deviceInfo.deviceName.c_str());
-                    real = upperBoundStreamsNum ? 2 * upperBoundStreamsNum : defaultNumForTPUT;
+                    real = 8u; //upperBoundStreamsNum ? 2 * upperBoundStreamsNum : defaultNumForTPUT;
                 }
             } else {
                 real = defaultNumForLatency;

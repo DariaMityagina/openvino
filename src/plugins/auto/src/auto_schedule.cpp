@@ -913,6 +913,8 @@ AutoSchedule::~AutoSchedule() {
                         reqAllEndTimes.back() - time;
                     LOG_INFO_TAG("%s:fps:%lf", _workerRequest.first.c_str(),
                         n * 1000 / durtation.count());
+                    LOG_INFO_TAG("%s:time:%lf", _workerRequest.first.c_str(),
+                        durtation.count());
                 }
             }
         }
