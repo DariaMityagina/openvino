@@ -360,6 +360,7 @@ int main(int argc, char* argv[]) {
         for (auto& device : devices) {
             auto& device_config = config[device];
             auto ov_perf_hint = get_performance_hint(device, core);
+            slog::info << "Device config upd = " << device << ", ov_perf_hint = " << ov_perf_hint << slog::endl;
             OPENVINO_SUPPRESS_DEPRECATED_START
             if (isFlagSetInCommandLine("hint")) {
                 if (ov_perf_hint != ov::hint::PerformanceMode::UNDEFINED) {
@@ -568,6 +569,7 @@ int main(int argc, char* argv[]) {
             slog::info << "Skipping the step for loading model from file" << slog::endl;
             auto startTime = Time::now();
             compiledModel = core.compile_model(FLAGS_m, device_name, device_config);
+            slog::info << "Device_name = " << device_name << slog::endl;
             auto duration_ms = get_duration_ms_till_now(startTime);
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;
             slog::info << "Original model I/O parameters:" << slog::endl;

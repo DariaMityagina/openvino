@@ -609,7 +609,9 @@ void AutoSchedule::TryToLoadNetWork(AutoLoadContext& context, const std::string&
     auto& device = context.deviceInfo.deviceName;
     auto& deviceConfig = context.deviceInfo.config;
     auto& deviceList = context.metaDevices;
+    LOG_WARNING_TAG("TryToLoadNetWork = %s", device.c_str());
     bool curDevIsCPU = (device.find("CPU") != std::string::npos);
+    LOG_WARNING_TAG("curDevIsCPU");
     bool curDevIsGPU = (device.find("GPU") != std::string::npos);
     {
         std::lock_guard<std::mutex> lock(_autoSContext->_confMutex);
@@ -806,6 +808,7 @@ bool AutoSchedule::ScheduleToWorkerInferRequest(IE::Task inferPipelineTask, Devi
     }
     lock.unlock();
     for (auto&& device : devices) {
+        LOG_WARNING_TAG("ScheduleToWorkerInferRequest %s", device.deviceName.c_str());
         if (!preferred_device.empty() && (device.deviceName != preferred_device)) {
             continue;
         }
@@ -882,6 +885,8 @@ AutoSchedule::~AutoSchedule() {
             reqAllEndTimes.sort(std::less<Time>());
             if (_workerRequest.first == "CPU_HELP") {
                 LOG_INFO_TAG("CPU_HELP:infer:%ld", _cpuHelpInferCount + count);
+                LOG_INFO_TAG("CPU_HELP:infer _cpuHelpInferCount:%lf", _cpuHelpInferCount);
+                LOG_INFO_TAG("CPU_HELP:infer count:%lf", count);
                 if (_cpuHelpFps > 0.0) {
                     LOG_INFO_TAG("CPU_HELP:fps:%lf", _cpuHelpFps);
                 } else if (count >= 1) {
