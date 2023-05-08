@@ -214,6 +214,7 @@ IE::Parameter AutoExecutableNetwork::GetMetric(const std::string& name) const {
                         LOG_WARNING_TAG("deduce optimal infer requset num for auto-batch failed :%s",
                             iie.what());
                     }
+                    LOG_WARNING_TAG("Device, optimalBatchSize > 1) :%s", deviceInfo.deviceName.c_str());
                     real = (std::max)(requests, optimalBatchSize);
                 } else if (deviceInfo.deviceName.find("VPUX") != std::string::npos) {
                     real = 4u;
