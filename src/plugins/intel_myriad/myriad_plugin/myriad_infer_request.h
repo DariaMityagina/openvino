@@ -21,7 +21,16 @@
 namespace vpu {
 namespace MyriadPlugin {
 
+class AsyncInferRequest : public InferenceEngine::AsyncInferRequestThreadSafeDefault {
+public:
+    AsyncInferRequest(const InferenceEngine::IInferRequestInternal::Ptr &inferRequest,
+                      const InferenceEngine::ITaskExecutor::Ptr &taskExecutor,
+                      const InferenceEngine::ITaskExecutor::Ptr &callbackExecutor);
+    ~AsyncInferRequest();
+};
+
 class MyriadInferRequest : public InferenceEngine::IInferRequestInternal {
+    AsyncInferRequest* _asyncRequest = nullptr;
     MyriadExecutorPtr _executor;
     Logger::Ptr _log;
     std::vector<StageMetaInfo> _stagesMetaData;
@@ -70,6 +79,9 @@ public:
 
     std::map<std::string, InferenceEngine::InferenceEngineProfileInfo>
     GetPerformanceCounts() const override;
+
+    void SetAsyncRequest(AsyncInferRequest* asyncRequest);
+    void ThrowIfCanceled() const;
 };
 
 }  // namespace MyriadPlugin

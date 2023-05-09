@@ -26,6 +26,27 @@ using namespace vpu;
 using namespace vpu::MyriadPlugin;
 using namespace InferenceEngine;
 
+void MyriadInferRequest::ThrowIfCanceled() const {
+    if (_asyncRequest != nullptr) {
+        _asyncRequest->ThrowIfCanceled();
+    }
+}
+
+void MyriadInferRequest::SetAsyncRequest(AsyncInferRequest* asyncRequest) {
+    _asyncRequest = asyncRequest;
+}
+
+vpu::MyriadPlugin::AsyncInferRequest::AsyncInferRequest(const InferenceEngine::IInferRequestInternal::Ptr& inferRequest,
+                                                    const InferenceEngine::ITaskExecutor::Ptr& taskExecutor,
+                                                    const InferenceEngine::ITaskExecutor::Ptr& callbackExecutor)
+    : InferenceEngine::AsyncInferRequestThreadSafeDefault(inferRequest, taskExecutor, callbackExecutor) {
+    static_cast<MyriadInferRequest*>(inferRequest.get())->SetAsyncRequest(this);
+}
+
+vpu::MyriadPlugin::AsyncInferRequest::~AsyncInferRequest() {
+    StopAndWait();
+}
+
 MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
                                        const std::vector<std::shared_ptr<const ov::Node>>& inputs,
                                        const std::vector<std::shared_ptr<const ov::Node>>& outputs,
@@ -224,6 +245,7 @@ void MyriadInferRequest::InferAsync() {
     // execute input pre-processing
     execDataPreprocessing(_inputs, true);  // "true" stands for serial preprocessing in case of OpenMP
 
+    ThrowIfCanceled();
     auto inputInfo = _inputInfo;
     auto networkInputs = _networkInputs;
 
@@ -233,6 +255,7 @@ void MyriadInferRequest::InferAsync() {
                                                     << "Input offset [" << name << "] is not provided.";
         return offsetIt->second;
     };
+    ThrowIfCanceled();
 
     auto getNetInputInfo = [&networkInputs] (const std::string& name) {
         const auto foundBlob = networkInputs.find(name);
@@ -240,6 +263,7 @@ void MyriadInferRequest::InferAsync() {
                                                     << "Input [" << name << "] is not provided.";
         return foundBlob;
     };
+    ThrowIfCanceled();
 
     for (const auto& input : _inputs) {
         const auto& name = input.first;
@@ -266,9 +290,11 @@ void MyriadInferRequest::InferAsync() {
             reinterpret_cast<int32_t*>(inputBuffer.data())[offsetDims + i] = dim;
         }
     }
+    ThrowIfCanceled();
 
     _executor->queueInference(_graphDesc, inputBuffer.data(),
                             _inputInfo.totalSize, nullptr, 0);
+    ThrowIfCanceled();
 }
 
 static void copyBlobAccordingUpperBound(
