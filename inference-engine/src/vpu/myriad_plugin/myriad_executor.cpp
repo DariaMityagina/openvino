@@ -412,6 +412,7 @@ void MyriadExecutor::queueInference(GraphDesc &graphDesc, void *input_data, size
         file.write(static_cast<const char*>(input_data), input_bytes);
     }
 #endif
+    IE_THROW() << "Random error\n";
 
     if (graphDesc._inputDesc.totalSize != input_bytes) {
         IE_THROW() << "Input has unexpected size " << input_bytes << ", expected "

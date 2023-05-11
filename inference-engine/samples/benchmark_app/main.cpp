@@ -564,10 +564,19 @@ int main(int argc, char* argv[]) {
         if (!inferRequest) {
             IE_THROW() << "No idle Infer Requests!";
         }
-        if (FLAGS_api == "sync") {
-            inferRequest->infer();
-        } else {
-            inferRequest->startAsync();
+        bool done = false;
+        while (!done) {
+            try {
+                if (FLAGS_api == "sync") {
+                    inferRequest->infer();
+                } else {
+                    inferRequest->startAsync();
+                }
+            } catch (...) {
+                std::cout << "Got an exception in catch 1\n";
+                continue;
+            }
+            done = true;
         }
         inferRequestsQueue.waitAll();
         auto duration_ms = double_to_string(inferRequestsQueue.getLatencies()[0]);
@@ -591,17 +600,26 @@ int main(int argc, char* argv[]) {
                 IE_THROW() << "No idle Infer Requests!";
             }
 
-            if (FLAGS_api == "sync") {
-                inferRequest->infer();
-            } else {
-                // As the inference request is currently idle, the wait() adds no
-                // additional overhead (and should return immediately). The primary
-                // reason for calling the method is exception checking/re-throwing.
-                // Callback, that governs the actual execution can handle errors as
-                // well, but as it uses just error codes it has no details like ‘what()’
-                // method of `std::exception` So, rechecking for any exceptions here.
-                inferRequest->wait();
-                inferRequest->startAsync();
+            bool done = false;
+            while (!done) {
+                try {
+                    if (FLAGS_api == "sync") {
+                        inferRequest->infer();
+                    } else {
+                        // As the inference request is currently idle, the wait() adds no
+                        // additional overhead (and should return immediately). The primary
+                        // reason for calling the method is exception checking/re-throwing.
+                        // Callback, that governs the actual execution can handle errors as
+                        // well, but as it uses just error codes it has no details like ‘what()’
+                        // method of `std::exception` So, rechecking for any exceptions here.
+                        inferRequest->wait();
+                        inferRequest->startAsync();
+                    }
+                } catch (...) {
+                    std::cout << "Got an exception in catch 2\n";
+                    continue;
+                }
+                done = true;
             }
             iteration++;
 

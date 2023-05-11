@@ -17,9 +17,15 @@ MyriadAsyncInferRequest::MyriadAsyncInferRequest(MyriadInferRequest::Ptr request
     _request(request), _taskExecutorGetResult(taskExecutorGetResult) {
         _pipeline = {
             {_requestExecutor, [this] {
-                _request->InferAsync();
+                std::cout << "_request->InferAsync();\n";
+                try {
+                    _request->InferAsync();
+                } catch (...) {
+                    throw std::runtime_error("InferAsync failed");
+                }
             }},
             {_taskExecutorGetResult, [this] {
+                std::cout << "_request->GetResult();\n";
                 _request->GetResult();
             }}
         };

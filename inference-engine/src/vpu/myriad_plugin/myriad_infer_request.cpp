@@ -88,11 +88,14 @@ MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
 }
 
 void MyriadInferRequest::InferImpl() {
+    std::cout << "InferAsync();\n";
     InferAsync();
+    std::cout << "GetResult();\n";
     GetResult();
 }
 
 void MyriadInferRequest::InferAsync() {
+    std::cout << "MyriadInferRequest::InferAsync\n";
     VPU_PROFILE(InferAsync);
 
     // execute input pre-processing
@@ -193,6 +196,7 @@ static void copyBlobAccordingUpperBound(
 }
 
 void MyriadInferRequest::GetResult() {
+    std::cout << "MyriadInferRequest::GetResult\n";
     VPU_PROFILE(GetResult);
 
     auto networkOutputs = _networkOutputs;
