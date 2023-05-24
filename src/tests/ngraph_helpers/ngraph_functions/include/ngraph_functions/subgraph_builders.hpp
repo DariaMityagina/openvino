@@ -818,19 +818,19 @@ inline std::shared_ptr<ngraph::Function> makeSingleSplit(std::vector<size_t> inp
 
 inline std::shared_ptr<ngraph::Function> makeSplitConcat(std::vector<size_t> inputShape = {1, 4, 24, 24},
                                                          ngraph::element::Type_t type = ngraph::element::Type_t::f32) {
-    auto param1 = std::make_shared<ngraph::opset8::Parameter>(type, ngraph::Shape{inputShape});
+    auto param1 = std::make_shared<ngraph::opset7::Parameter>(type, ngraph::Shape{inputShape});
     param1->set_friendly_name("param1");
     param1->output(0).get_tensor().set_names({"data1"});
-    auto axis_node = ngraph::opset8::Constant::create(element::i64, Shape{}, {1});
-    auto split = std::make_shared<ngraph::opset8::Split>(param1, axis_node, 2);
+    auto axis_node = ngraph::opset7::Constant::create(element::i64, Shape{}, {1});
+    auto split = std::make_shared<ngraph::opset7::Split>(param1, axis_node, 2);
     split->set_friendly_name("split");
     split->output(0).get_tensor().set_names({"tensor_split_1"});
     split->output(1).get_tensor().set_names({"tensor_split_2"});
 
-    auto concat = std::make_shared<ngraph::opset8::Concat>(OutputVector{split->output(0), split->output(1)}, 1);
+    auto concat = std::make_shared<ngraph::opset7::Concat>(OutputVector{split->output(0), split->output(1)}, 1);
     concat->set_friendly_name("concat_op");
     concat->output(0).get_tensor().set_names({"concat"});
-    auto result = std::make_shared<ngraph::opset8::Result>(concat);
+    auto result = std::make_shared<ngraph::opset7::Result>(concat);
     result->set_friendly_name("result");
     auto fn_ptr = std::make_shared<ngraph::Function>(ngraph::ResultVector{ result },
                                                      ngraph::ParameterVector{ param1 });
