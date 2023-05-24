@@ -170,7 +170,7 @@ public:
     void SetUp() {
         SKIP_IF_CURRENT_TEST_IS_DISABLED();
         // Generic network
-        actualNetwork = ngraph::builder::subgraph::makeSplitConcat();
+        actualNetwork = ngraph::builder::subgraph::makeSplitConvConcat();
         // Quite simple network
         simpleNetwork = ngraph::builder::subgraph::makeSingleConcatWithConstant();
         // Multinput to substruct network
