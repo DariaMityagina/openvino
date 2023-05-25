@@ -36,7 +36,8 @@ using namespace vpu;
 static std::mutex device_mutex;
 
 MyriadExecutor::MyriadExecutor(bool forceReset, std::shared_ptr<IMvnc> mvnc,
-    const LogLevel& vpuLogLevel, const Logger::Ptr& log) : _log(log), _mvnc(std::move(mvnc)) {
+    const LogLevel& vpuLogLevel, const Logger::Ptr& log, int timeOut) : _log(log), _mvnc(std::move(mvnc)) {
+    _timeOut = timeOut;
     VPU_PROFILE(MyriadExecutor);
     VPU_THROW_UNLESS(_mvnc, "mvnc is null");
     int ncResetAll = forceReset;
@@ -416,6 +417,12 @@ void MyriadExecutor::queueInference(GraphDesc &graphDesc, void *input_data, size
     if (graphDesc._inputDesc.totalSize != input_bytes) {
         IE_THROW() << "Input has unexpected size " << input_bytes << ", expected "
                            << graphDesc._inputDesc.totalSize;
+    }
+
+    if (_timeOut == 15) { // Example. Let's just assume that we got an error during queueInference
+        IE_THROW() << "Got an error/exception\n";
+    } else {
+        std::cout << "Timeout = " << _timeOut << "\n";
     }
 
     ncStatus_t status = ncGraphQueueInferenceWithFifoElem(graphDesc._graphHandle,

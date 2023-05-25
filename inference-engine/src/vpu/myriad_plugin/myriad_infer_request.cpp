@@ -25,6 +25,18 @@ using namespace InferenceEngine;
 
 #define MEMCPY(dst, src, bytes) std::copy_n((src), (bytes), (dst))
 
+void MyriadInferRequest::ThrowIfCanceled() const {
+    if (_asyncRequest != nullptr) {
+        _asyncRequest->ThrowIfCanceled();
+    } else {
+        std::cout << "_asyncRequest == nullptr\n";
+    }
+}
+
+void MyriadInferRequest::SetAsyncRequest(MyriadAsyncInferRequest* asyncRequest) {
+    _asyncRequest = asyncRequest;
+}
+
 MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
                                        InferenceEngine::InputsDataMap networkInputs,
                                        InferenceEngine::OutputsDataMap networkOutputs,
@@ -78,7 +90,6 @@ MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
         outputBlob->allocate();
         _outputs[networkOutput.first] = outputBlob;
     }
-
     inputBuffer .resize(compilerInputsInfo.totalSize);
     resultBuffer.resize(compilerOutputsInfo.totalSize);
 
@@ -88,11 +99,18 @@ MyriadInferRequest::MyriadInferRequest(GraphDesc &graphDesc,
 }
 
 void MyriadInferRequest::InferImpl() {
-    InferAsync();
+    try {
+        InferAsync();
+    } catch (...) {
+        std::cout << "Got an exception\n";
+        _asyncRequest->Cancel();
+    }
+    ThrowIfCanceled();
     GetResult();
 }
 
 void MyriadInferRequest::InferAsync() {
+    std::cout << "MyriadInferRequest::InferAsync()\n";
     VPU_PROFILE(InferAsync);
 
     // execute input pre-processing
@@ -139,7 +157,7 @@ void MyriadInferRequest::InferAsync() {
     }
 
     _executor->queueInference(_graphDesc, inputBuffer.data(),
-                              _inputInfo.totalSize, nullptr, 0);
+                            _inputInfo.totalSize, nullptr, 0);
 }
 
 static void copyBlobAccordingUpperBound(
@@ -193,6 +211,7 @@ static void copyBlobAccordingUpperBound(
 }
 
 void MyriadInferRequest::GetResult() {
+    std::cout << "MyriadInferRequest::GetResult()\n";
     VPU_PROFILE(GetResult);
 
     auto networkOutputs = _networkOutputs;

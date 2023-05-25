@@ -583,6 +583,7 @@ int main(int argc, char* argv[]) {
         /** to align number if iterations to guarantee that last infer requests are
          * executed in the same conditions **/
         ProgressBar progressBar(progressBarTotalCount, FLAGS_stream_output, FLAGS_progress);
+        // int timeout = 20 * pow(10,6);
 
         while ((niter != 0LL && iteration < niter) || (duration_nanoseconds != 0LL && (uint64_t)execTime < duration_nanoseconds) ||
                (FLAGS_api == "async" && iteration % nireq != 0)) {
@@ -590,7 +591,6 @@ int main(int argc, char* argv[]) {
             if (!inferRequest) {
                 IE_THROW() << "No idle Infer Requests!";
             }
-
             if (FLAGS_api == "sync") {
                 inferRequest->infer();
             } else {

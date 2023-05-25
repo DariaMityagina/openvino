@@ -86,7 +86,7 @@ public:
         syncRequestImpl->setPointerToExecutableNetworkInternal(shared_from_this());
         auto taskExecutorGetResult = getNextTaskExecutor();
         return std::make_shared<MyriadAsyncInferRequest>(
-                syncRequestImpl, _taskExecutor, _callbackExecutor, taskExecutorGetResult);
+                syncRequestImpl, _taskExecutor, _callbackExecutor);
     }
 
     void Export(std::ostream& model) override {

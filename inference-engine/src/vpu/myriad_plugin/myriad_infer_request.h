@@ -15,11 +15,14 @@
 #include <vpu/utils/logger.hpp>
 #include <vpu/utils/ie_helpers.hpp>
 
+#include "myriad_async_infer_request.h"
 #include "myriad_executor.h"
 #include "myriad_config.h"
 
 namespace vpu {
 namespace MyriadPlugin {
+
+class MyriadAsyncInferRequest;
 
 class MyriadInferRequest : public InferenceEngine::IInferRequestInternal {
     MyriadExecutorPtr _executor;
@@ -36,6 +39,7 @@ class MyriadInferRequest : public InferenceEngine::IInferRequestInternal {
 
 public:
     typedef std::shared_ptr<MyriadInferRequest> Ptr;
+    MyriadAsyncInferRequest* _asyncRequest = nullptr;
 
     explicit MyriadInferRequest(GraphDesc &_graphDesc,
                                 InferenceEngine::InputsDataMap networkInputs,
@@ -53,6 +57,9 @@ public:
 
     std::map<std::string, InferenceEngine::InferenceEngineProfileInfo>
     GetPerformanceCounts() const override;
+
+    void SetAsyncRequest(MyriadAsyncInferRequest* asyncRequest);
+    void ThrowIfCanceled() const;
 };
 
 }  // namespace MyriadPlugin

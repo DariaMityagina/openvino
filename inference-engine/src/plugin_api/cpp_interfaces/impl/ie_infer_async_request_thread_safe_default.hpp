@@ -12,6 +12,7 @@
 
 #include <exception>
 #include <future>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -76,6 +77,7 @@ class AsyncInferRequestThreadSafeDefault : public IInferRequestInternal {
             case InferState::Busy :
                 IE_THROW(RequestBusy);
             case InferState::Canceled :
+                std::cout << "InferImpl - InferState state = InferCancelled\n";
                 IE_THROW(InferCancelled);
             case InferState::Idle : {
                 _futures.erase(std::remove_if(std::begin(_futures), std::end(_futures),
@@ -255,6 +257,7 @@ public:
     void ThrowIfCanceled() const {
         std::lock_guard<std::mutex> lock{_mutex};
         if (_state == InferState::Canceled) {
+            std::cout << "ie_infer_async_request_thread_safe_default.hpp ThrowIfCanceled()\n";
             IE_THROW(InferCancelled);
         }
     }
@@ -262,6 +265,7 @@ public:
     void Cancel() override {
         std::lock_guard<std::mutex> lock{_mutex};
         if (_state == InferState::Busy) {
+            std::cout << "ie_infer_async_request_thread_safe_default.hpp Cancel()\n";
             _state = InferState::Canceled;
         }
     }

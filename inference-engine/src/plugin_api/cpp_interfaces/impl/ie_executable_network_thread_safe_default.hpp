@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "cpp_interfaces/interface/ie_iexecutable_network_internal.hpp"
 #include "cpp_interfaces/impl/ie_infer_async_request_thread_safe_default.hpp"

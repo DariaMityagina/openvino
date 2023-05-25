@@ -12,14 +12,12 @@ namespace MyriadPlugin {
 
 class MyriadAsyncInferRequest : public InferenceEngine::AsyncInferRequestThreadSafeDefault {
 public:
-    MyriadAsyncInferRequest(MyriadInferRequest::Ptr request,
-                                const InferenceEngine::ITaskExecutor::Ptr &taskExecutorStart,
-                                const InferenceEngine::ITaskExecutor::Ptr &callbackExecutor,
-                                const InferenceEngine::ITaskExecutor::Ptr &taskExecutorGetResult);
+    MyriadAsyncInferRequest(const InferenceEngine::IInferRequestInternal::Ptr &inferRequest,
+                            const InferenceEngine::ITaskExecutor::Ptr &taskExecutor,
+                            const InferenceEngine::ITaskExecutor::Ptr &callbackExecutor);
 
     ~MyriadAsyncInferRequest();
 private:
-    MyriadInferRequest::Ptr _request;
     InferenceEngine::ITaskExecutor::Ptr _taskExecutorGetResult;
 };
 

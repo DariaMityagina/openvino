@@ -16,7 +16,7 @@
 #include <cpp_interfaces/interface/ie_iinfer_request_internal.hpp>
 #include <cpp_interfaces/interface/ie_iplugin_internal.hpp>
 #include <cpp_interfaces/plugin_itt.hpp>
-
+#include <iostream>
 
 namespace InferenceEngine {
 
@@ -38,6 +38,7 @@ void IInferRequestInternal::InferImpl() {
 }
 
 void IInferRequestInternal::Cancel() {
+    std::cout << "IInferRequestInternal::Cancel()\n";
     IE_THROW(NotImplemented);
 }
 
