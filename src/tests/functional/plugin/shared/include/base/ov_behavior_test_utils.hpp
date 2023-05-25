@@ -34,7 +34,7 @@ namespace behavior {
 
 inline std::shared_ptr<ngraph::Function> getDefaultNGraphFunctionForTheDevice(std::vector<size_t> inputShape = {1, 2, 32, 32},
                                                                               ngraph::element::Type_t ngPrc = ngraph::element::Type_t::f32) {
-    return ngraph::builder::subgraph::makeSplitConcat(inputShape, ngPrc);
+    return ngraph::builder::subgraph::makeSplitConvConcat(inputShape, ngPrc);
 }
 
 class APIBaseTest : public CommonTestUtils::TestsCommon {
