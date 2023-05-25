@@ -170,11 +170,11 @@ public:
     void SetUp() {
         SKIP_IF_CURRENT_TEST_IS_DISABLED();
         // Generic network
-        actualNetwork = ngraph::builder::subgraph::makeSplitConcat();
+        actualNetwork = ngraph::builder::subgraph::makeSplitConvConcat();
         // Quite simple network
-        simpleNetwork = ngraph::builder::subgraph::makeSingleConcatWithConstant();
+        simpleNetwork = ngraph::builder::subgraph::makeSingleConv();
         // Multinput to substruct network
-        multinputNetwork = ngraph::builder::subgraph::makeConcatWithParams();
+        multinputNetwork = ngraph::builder::subgraph::make2InputSubtract();
         // Network with KSO
         ksoNetwork = ngraph::builder::subgraph::makeKSOFunction();
     }
