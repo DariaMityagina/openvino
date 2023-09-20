@@ -290,6 +290,10 @@ size_t get_batch_size(const benchmark_app::InputsInfo& inputs_info) {
             else if (batch_size != info.second.batch()) {
                 std::cout << "batch_size = " << batch_size << "\n";
                 std::cout << "info.second.batch() = " << info.second.batch() << "\n";
+                std::cout << "info.second.width() = " << info.second.width() << "\n";
+                std::cout << "info.second.height() = " << info.second.height() << "\n";
+                std::cout << "info.second.channels() = " << info.second.channels() << "\n";
+                std::cout << "info.second.depth() = " << info.second.depth() << "\n";
                 std::cout << "info.second.layout = " << info.second.layout.to_string() << "\n";
                 throw std::logic_error("Can't deterimine batch size: batch is "
                                        "different for different inputs!");
