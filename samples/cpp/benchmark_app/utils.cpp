@@ -287,12 +287,13 @@ size_t get_batch_size(const benchmark_app::InputsInfo& inputs_info) {
         if (ov::layout::has_batch(info.second.layout)) {
             if (batch_size == 0)
                 batch_size = info.second.batch();
-            else if (batch_size != info.second.batch())
+            else if (batch_size != info.second.batch()) {
                 std::cout << "batch_size = " << batch_size << "\n";
                 std::cout << "info.second.batch() = " << info.second.batch() << "\n";
                 std::cout << "info.second.layout = " << info.second.layout.to_string() << "\n";
                 throw std::logic_error("Can't deterimine batch size: batch is "
                                        "different for different inputs!");
+            }
         }
     }
     if (batch_size == 0) {
