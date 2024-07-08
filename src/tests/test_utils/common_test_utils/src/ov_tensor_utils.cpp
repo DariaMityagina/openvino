@@ -430,6 +430,8 @@ void compare(const ov::Tensor& expected,
     for (size_t i = 0; i < shape_size_cnt; ++i) {
         double expected_value = expected_data[i];
         double actual_value = actual_data[i];
+        std::cout << "expected_value " << expected_value << "\n";
+        std::cout << "actual_value " << actual_value << "\n";
         if ((std::isinf(expected_value) || expected_value >= max_type_expected) &&
             (std::isinf(actual_value) || actual_value >= max_type_actual)) {
             continue;
