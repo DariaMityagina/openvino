@@ -69,7 +69,7 @@ std::optional<size_t> getBatchSizeForNode(const IONodeDescriptor& nodeDescriptor
         return std::nullopt;
     }
 
-    const std::vector<size_t>& ovDimensions = nodeDescriptor.originalShape.get_shape();
+    const std::vector<size_t>& ovDimensions = nodeDescriptor.originalShape.get_max_shape();
 
     if (ovDimensions[BATCH_AXIS] == zeDescriptor.info.dims[BATCH_AXIS] &&
         ovDimensions[BATCH_AXIS] != DEFAULT_BATCH_SIZE) {
