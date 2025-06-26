@@ -702,8 +702,10 @@ void ZeroInferRequest::infer_async() {
             }
         }
 
-        auto batch_size =
-            _graph->get_batch_size(_metadata, _userInputTensors.at(inputIndex), _graphInputDescriptors.at(inputIndex));
+        auto batch_size = _graph->get_batch_size(_metadata, {}, {});
+        if (!_userInputTensors.empty() && inputIndex < _userInputTensors.size()) {
+            batch_size = _graph->get_batch_size(_metadata, _userInputTensors.at(inputIndex), _graphInputDescriptors.at(inputIndex));
+        }
         if (is_batched_input(inputIndex) || batch_size.has_value()) {
             if (batch_size.has_value()) {
                 for (size_t i = 0; i < userTensor.size(); i++) {
