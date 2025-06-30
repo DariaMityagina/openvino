@@ -539,7 +539,11 @@ ov::SoPtr<ov::ITensor> ZeroInferRequest::get_tensor(const ov::Output<const ov::N
     // TODO: this branch is seems the only valid one, for the dynamic batch.
     // We must obtaib relevant batch size from input tensors, as these are the only source of truth.
     _logger.debug("ZeroInferRequest::get_tensor - try to get batch size from input tensors, if output is not created");
-    tensorVector.push_back(get_user_input(ioIndex));
+    if(isInput) {
+        tensorVector.push_back(get_user_input(ioIndex));
+    } else {
+        tensorVector.push_back(get_user_input(0));
+    }
 
     auto batch_size =
         _graph->get_batch_size(_metadata,
