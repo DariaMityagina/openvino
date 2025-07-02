@@ -204,25 +204,27 @@ std::optional<size_t> IGraph::determine_batch_size(const NetworkMetadata& metada
 std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
                                              const std::vector<ov::SoPtr<ov::ITensor>>& tensors,
                                              const IONodeMetadata& input_output_info) {
-    if (!metadata.outputs.at(0).shapeFromIRModel.has_value()) {
+    if (!metadata.outputs.at(0).shapeFromIRModel.has_value() && !metadata.inputs.at(0).shapeFromIRModel.has_value()) {
         _logger.debug("Batching on the plugin is not used, batching is handled by the compiler");
         return std::nullopt;
     }
 
-    const ov::PartialShape& firstOutputShape = *metadata.outputs.at(0).shapeFromIRModel;
-    if (firstOutputShape.is_dynamic()) {
+    const ov::PartialShape& firstShape = metadata.outputs.at(0).shapeFromIRModel.has_value()
+                                             ? *metadata.outputs.at(0).shapeFromIRModel
+                                             : *metadata.inputs.at(0).shapeFromIRModel;
+    if (firstShape.is_dynamic()) {
         _logger.debug(
             "Networks using dynamic batch are handled by the plugin. Let's determine batch size over tensors: %zu",
             tensors.size());
         return !tensors.empty() ? determine_batch_size(metadata, tensors, input_output_info) : std::nullopt;
     }
-    if (firstOutputShape.rank().get_length() == 0) {
+    if (firstShape.rank().get_length() == 0) {
         _logger.warning("Networks using rank 0 shapes for inputs/outputs are not supported when batching is "
                         "handled by the plugin");
         return std::nullopt;
     }
 
-    const size_t candidateBatchSize = firstOutputShape[BATCH_AXIS].get_max_length();
+    const size_t candidateBatchSize = firstShape[BATCH_AXIS].get_max_length();
     if (candidateBatchSize == 0 || candidateBatchSize == DEFAULT_BATCH_SIZE) {
         _logger.debug("Batching on the plugin is not used, batching is handled by the compiler");
         return std::nullopt;
