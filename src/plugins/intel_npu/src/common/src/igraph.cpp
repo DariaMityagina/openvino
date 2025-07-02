@@ -215,10 +215,15 @@ std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
 
     const ov::PartialShape& firstShapeFromIR = *metadata.outputs.at(0).shapeFromIRModel;
     const ov::PartialShape& firstShapeFromCompiler = metadata.outputs.at(0).shapeFromCompiler;
+    const ov::PartialShape& firstShapeInFromIR = *metadata.inputs.at(0).shapeFromIRModel;
+    const ov::PartialShape& firstShapeInFromCompiler = metadata.inputs.at(0).shapeFromCompiler;
+
     const ov::PartialShape& firstShape =
         metadata.outputs.at(0).shapeFromIRModel.has_value() ? firstShapeFromIR : firstShapeFromCompiler;
 
-    if (firstShapeFromIR.is_dynamic() || firstShapeFromCompiler.is_dynamic()) {
+    auto isDynamic = firstShapeFromIR.is_dynamic() || firstShapeFromCompiler.is_dynamic() ||
+                     firstShapeInFromIR.is_dynamic() || firstShapeInFromCompiler.is_dynamic();
+    if (isDynamic) {
         _logger.debug(
             "Networks using dynamic batch are handled by the plugin. Let's determine batch size over tensors: %zu",
             tensors.size());
