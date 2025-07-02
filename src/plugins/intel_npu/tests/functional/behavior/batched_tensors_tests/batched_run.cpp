@@ -28,14 +28,14 @@ const std::vector<ov::AnyMap> DynamicBatchedConfigsMLIR = {
 const std::vector<ov::AnyMap> DynamicBatchedConfigsCID = {
     {ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::PLUGIN), ov::log::level(ov::log::Level::DEBUG)}};
 
-INSTANTIATE_TEST_SUITE_P(smoke_BehaviorTest,
-                         DynamicBatchedTensorsRunTestsMLIR,
+INSTANTIATE_TEST_SUITE_P(smoke_BehaviorTestMLIR,
+                         DynamicBatchedTensorsRunTests,
                          ::testing::Combine(::testing::Values(ov::test::utils::DEVICE_NPU),
                                             ::testing::ValuesIn(DynamicBatchedConfigsMLIR)),
                          BatchedTensorsRunTests::getTestCaseName);
 
-INSTANTIATE_TEST_SUITE_P(smoke_BehaviorTest,
-                         DynamicBatchedTensorsRunTestsCID,
+INSTANTIATE_TEST_SUITE_P(smoke_BehaviorTestCID,
+                         DynamicBatchedTensorsRunTests,
                          ::testing::Combine(::testing::Values(ov::test::utils::DEVICE_NPU),
                                             ::testing::ValuesIn(DynamicBatchedConfigsCID)),
                          BatchedTensorsRunTests::getTestCaseName);
