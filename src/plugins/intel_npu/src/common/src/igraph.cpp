@@ -217,10 +217,6 @@ std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
                                              ? *metadata.outputs.at(0).shapeFromIRModel
                                              : metadata.outputs.at(0).shapeFromCompiler;
 
-    for (auto dim : firstShape) {
-        _logger.debug("firstShape: {0}", dim);
-    }
-
     if (firstShape.is_dynamic()) {
         _logger.debug(
             "Networks using dynamic batch are handled by the plugin. Let's determine batch size over tensors: %zu",
