@@ -10,9 +10,9 @@
 
 using namespace ov::test::behavior;
 
-const std::vector<ov::AnyMap> batchedConfigs = {{ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::PLUGIN)},
-                                                {ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::COMPILER)},
-                                                {ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::AUTO)}};
+const std::vector<ov::AnyMap> batchedConfigs = {{ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::PLUGIN), ov::log::level(ov::log::Level::DEBUG)},
+                                                {ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::COMPILER), ov::log::level(ov::log::Level::DEBUG)},
+                                                {ov::intel_npu::batch_mode(ov::intel_npu::BatchMode::AUTO), ov::log::level(ov::log::Level::DEBUG)}};
 
 INSTANTIATE_TEST_SUITE_P(smoke_BehaviorTest,
                          BatchedTensorsRunTests,
