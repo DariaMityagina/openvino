@@ -218,6 +218,12 @@ std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
     const ov::PartialShape& firstShapeInFromIR = *metadata.inputs.at(0).shapeFromIRModel;
     const ov::PartialShape& firstShapeInFromCompiler = metadata.inputs.at(0).shapeFromCompiler;
 
+    _logger.debug("firstShapeFromIR: %s", firstShapeFromIR.to_string().c_str());
+    _logger.debug("firstShapeFromCompiler: %s", firstShapeFromCompiler.to_string().c_str());
+
+    _logger.debug("firstShapeInFromIR: %s", firstShapeInFromIR.to_string().c_str());
+    _logger.debug("firstShapeInFromCompiler: %s", firstShapeInFromCompiler.to_string().c_str());
+
     const ov::PartialShape& firstShape =
         metadata.outputs.at(0).shapeFromIRModel.has_value() ? firstShapeFromIR : firstShapeFromCompiler;
 
