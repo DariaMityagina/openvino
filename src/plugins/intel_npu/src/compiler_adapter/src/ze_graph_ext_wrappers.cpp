@@ -348,7 +348,6 @@ ze_graph_handle_t ZeGraphExtWrappers::getGraphHandle(const uint8_t& blobData, si
  */
 static IODescriptor getIODescriptor(const ze_graph_argument_properties_3_t& arg,
                                     const std::optional<ze_graph_argument_metadata_t>& metadata) {
-    auto logger = Logger::global().clone("getIODescriptor");
     ov::element::Type_t precision = zeroUtils::toOVElementType(arg.devicePrecision);
     ov::Shape shapeFromCompiler;
     ov::PartialShape shapeFromIRModel;
@@ -371,8 +370,6 @@ static IODescriptor getIODescriptor(const ze_graph_argument_properties_3_t& arg,
                 // upper bound is set to the value from shapeFromCompiler as it is filled with upper bounds
                 // in case of dynamic dimensions
                 if (id == 0) {
-                    logger.info("Ignore dynamic batch size upper limit, but keep the dimension dynamic as a metadata "
-                                "from compiler has been lost.");
                     // We need to kepp batch dimension dynamic
                     shapeFromIRModel.push_back(ov::Dimension(1, dynamicDim));
                 } else {
