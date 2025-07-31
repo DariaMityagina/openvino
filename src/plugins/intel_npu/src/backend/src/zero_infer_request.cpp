@@ -709,7 +709,7 @@ void ZeroInferRequest::infer_async() {
                                 OPENVINO_THROW("Empty buffer");
                             }
 
-                            _logger.info(
+                            _logger.debug(
                                 "Batched Tensors - Tensor by index: %zu is not allocated in the current Level Zero "
                                 "context, copy bytes from user tensor: %zu, into L0 with expected size: %zu",
                                 inputIndex,
@@ -723,7 +723,7 @@ void ZeroInferRequest::infer_async() {
             } else {
                 void* levelZeroBuffer = get_level_zero_input(inputIndex)->data();
 
-                _logger.info("Batched Tensors - Tensor by index: %zu is not allocated in the current Level Zero "
+                _logger.debug("Batched Tensors - Tensor by index: %zu is not allocated in the current Level Zero "
                              "context or must be "
                              "in a continued memory space, copy into L0 with size: %zu",
                              inputIndex,
