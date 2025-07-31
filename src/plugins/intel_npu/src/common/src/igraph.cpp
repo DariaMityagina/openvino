@@ -210,7 +210,18 @@ std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
     }
 
     const ov::PartialShape& firstOutputShape = *metadata.outputs.at(0).shapeFromIRModel;
+    size_t candidateBatchSize = DEFAULT_BATCH_SIZE;
     if (firstOutputShape.is_dynamic()) {
+        if (!metadata.inputs.at(0).shapeFromIRModel.has_value()) {
+            _logger.debug("Batching on the plugin is not used, batching is handled by the compiler");
+            return std::nullopt;
+        }
+        const ov::PartialShape& firstInputShape = *metadata.inputs.at(0).shapeFromIRModel;
+        candidateBatchSize = firstInputShape[BATCH_AXIS].get_max_length();
+        if (candidateBatchSize == 0 || candidateBatchSize == DEFAULT_BATCH_SIZE) {
+            _logger.debug("Batching on the plugin is not used, batching is handled by the compiler");
+            return std::nullopt;
+        }
         _logger.debug(
             "Networks using dynamic batch are handled by the plugin. Let's determine batch size over tensors: %zu",
             tensors.size());
@@ -222,7 +233,7 @@ std::optional<size_t> IGraph::get_batch_size(const NetworkMetadata& metadata,
         return std::nullopt;
     }
 
-    const size_t candidateBatchSize = firstOutputShape[BATCH_AXIS].get_max_length();
+    candidateBatchSize = firstOutputShape[BATCH_AXIS].get_max_length();
     if (candidateBatchSize == 0 || candidateBatchSize == DEFAULT_BATCH_SIZE) {
         _logger.debug("Batching on the plugin is not used, batching is handled by the compiler");
         return std::nullopt;
