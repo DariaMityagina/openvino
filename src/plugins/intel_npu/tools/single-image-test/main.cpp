@@ -68,6 +68,7 @@ DEFINE_string(network, "", "Network file (either XML or pre-compiled blob)");
 DEFINE_string(input, "", "Input file(s)");
 DEFINE_string(compiled_blob, "", "Output compiled network file (compiled result blob)");
 DEFINE_uint32(override_model_batch_size, 1, "Enforce a model to be compiled for batch size");
+DEFINE_uint32(override_model_batch_size_for_dynamic_shapes, 1, "Enforce a model to be compiled for batch size");
 DEFINE_string(device, "", "Device to use");
 DEFINE_string(config, "", "Path to the configuration file (optional)");
 DEFINE_string(ip, "", "Input precision (default: U8, available: FP32, FP16, I32, I64, U8)");
@@ -2458,37 +2459,44 @@ static int runSingleImageTest() {
                     ++outputInd;
                 }
 
+                auto batch_size = 1;
+                if (FLAGS_override_model_batch_size > 1) {
+                    batch_size = FLAGS_override_model_batch_size;
+                } else if (FLAGS_override_model_batch_size_for_dynamic_shapes > 1 && !FLAGS_data_shape.empty()) {
+                    batch_size = FLAGS_override_model_batch_size_for_dynamic_shapes;
+                }
+
                 // Compare the outputs with their references using the chosen metric
                 if (strEq(FLAGS_mode, "classification")) {
-                    if (testClassification(outputTensors, referenceTensors, FLAGS_override_model_batch_size)) {
+                    if (testClassification(outputTensors, referenceTensors, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
                         return EXIT_FAILURE;
                     }
                 } else if (strEq(FLAGS_mode, "raw")) {
-                    if (testRAW(outputTensors, referenceTensors, FLAGS_override_model_batch_size)) {
+                    if (testRAW(outputTensors, referenceTensors, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
                         return EXIT_FAILURE;
                     }
                 } else if (strEq(FLAGS_mode, "cosim")) {
-                    if (testCoSim(outputTensors, referenceTensors, FLAGS_override_model_batch_size)) {
+                    if (testCoSim(outputTensors, referenceTensors, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
                         return EXIT_FAILURE;
                     }
                 } else if (strEq(FLAGS_mode, "rrmse")) {
-                    if (testRRMSE(outputTensors, referenceTensors, FLAGS_override_model_batch_size)) {
+                    if (testRRMSE(outputTensors, referenceTensors, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
                         return EXIT_FAILURE;
                     }
                 } else if (strEq(FLAGS_mode, "nrmse")) {
-                    if (testNRMSE(outputTensors, referenceTensors, FLAGS_override_model_batch_size)) {
+                    if (testNRMSE(outputTensors, referenceTensors, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
@@ -2496,7 +2504,7 @@ static int runSingleImageTest() {
                     }
                 } else if (strEq(FLAGS_mode, "ssd")) {
                     if (testSSDDetection(outputTensors, referenceTensors, inputDescriptors,
-                                         FLAGS_override_model_batch_size)) {
+                                         batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
@@ -2504,7 +2512,7 @@ static int runSingleImageTest() {
                     }
                 } else if (strEq(FLAGS_mode, "yolo_v2")) {
                     if (testYoloV2(outputTensors, referenceTensors, inputDescriptors,
-                                   FLAGS_override_model_batch_size)) {
+                                   batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
@@ -2512,7 +2520,7 @@ static int runSingleImageTest() {
                     }
                 } else if (strEq(FLAGS_mode, "yolo_v3")) {
                     if (testYoloV3(outputTensors, referenceTensors, inputDescriptors, outputLayouts,
-                                   FLAGS_override_model_batch_size)) {
+                                   batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
@@ -2520,7 +2528,7 @@ static int runSingleImageTest() {
                     }
                 } else if (strEq(FLAGS_mode, "yolo_v4")) {
                     if (testYoloV4(outputTensors, referenceTensors, inputDescriptors, outputLayouts,
-                                   FLAGS_override_model_batch_size)) {
+                                   batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
@@ -2534,14 +2542,14 @@ static int runSingleImageTest() {
                     const size_t dstWidth = shape[ov::layout::width_idx(outputLayout)];
 
                     if (testPSNR(outputTensors, referenceTensors, static_cast<int>(dstHeight),
-                                 static_cast<int>(dstWidth), FLAGS_override_model_batch_size)) {
+                                 static_cast<int>(dstWidth), batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
                         return EXIT_FAILURE;
                     }
                 } else if (strEq(FLAGS_mode, "mean_iou")) {
-                    if (testMeanIoU(outputTensors, referenceTensors, outputLayouts, FLAGS_override_model_batch_size)) {
+                    if (testMeanIoU(outputTensors, referenceTensors, outputLayouts, batch_size)) {
                         std::cout << "PASSED" << std::endl;
                     } else {
                         std::cout << "FAILED" << std::endl;
