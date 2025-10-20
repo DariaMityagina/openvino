@@ -69,6 +69,7 @@ std::shared_ptr<ov::Model> create_dummy_model(const std::vector<IODescriptor>& i
                                                                   : inputDescriptor.shapeFromCompiler;
 
         if (batchSize.has_value()) {
+            std::cout << "create_dummy_model : " << batchSize.value() << "\n";
             shape[intel_npu::utils::BATCH_AXIS] = ov::Dimension(batchSize.value());
         }
 
@@ -97,6 +98,7 @@ std::shared_ptr<ov::Model> create_dummy_model(const std::vector<IODescriptor>& i
                                                                    : outputDescriptor.shapeFromCompiler;
 
         if (batchSize.has_value()) {
+            std::cout << "create_dummy_model : " << batchSize.value() << "\n";
             shape[intel_npu::utils::BATCH_AXIS] = ov::Dimension(batchSize.value());
         }
 
@@ -926,13 +928,18 @@ std::shared_ptr<ov::ICompiledModel> Plugin::parse(const ov::Tensor& tensorBig,
     std::optional<int64_t> batchSize = std::nullopt;
 
     if (metadata) {
+        std::cout << "metadata, batch size will be recieved :\n";
         size_t accumulator = 0;
         initSizes = metadata->get_init_sizes();
         mainSize = initSizes.has_value()
                        ? metadata->get_blob_size() - std::accumulate(initSizes->begin(), initSizes->end(), accumulator)
                        : metadata->get_blob_size();
         batchSize = metadata->get_batch_size();
+        if (batchSize.has_value()) {
+            std::cout << "batchSize " << batchSize << "\n";
+        }
     } else {
+        std::cout << "no metadata, batch size will NOT be recieved :\n";
         _logger.info("Blob compatibility check skipped.");
     }
 

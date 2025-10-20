@@ -94,7 +94,7 @@ protected:
      * @brief The batch size used by the corresponding model.
      * @details The attribute contains a value only if the plugin performs the batches splitting operation.
      */
-    std::optional<std::size_t> _batchSize = std::nullopt;
+    std::optional<std::size_t> _batchSize;
 
     const ov::SoPtr<ICompiler> _compiler;
     Logger _logger;
