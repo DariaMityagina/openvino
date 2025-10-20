@@ -59,6 +59,8 @@ std::shared_ptr<ov::Model> create_dummy_model(const std::vector<IODescriptor>& i
     ov::ParameterVector parameters;
     ov::ResultVector results;
 
+    std::cout << "create_dummy_model\n";
+
     for (const IODescriptor& inputDescriptor : inputDescriptors) {
         if (inputDescriptor.isStateInput || inputDescriptor.isStateOutput || inputDescriptor.isShapeTensor ||
             inputDescriptor.isInitInputWeights || inputDescriptor.isMainInputWeights) {
@@ -936,7 +938,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::parse(const ov::Tensor& tensorBig,
                        : metadata->get_blob_size();
         batchSize = metadata->get_batch_size();
         if (batchSize.has_value()) {
-            std::cout << "batchSize " << batchSize << "\n";
+            std::cout << "batchSize " << batchSize.value() << "\n";
         }
     } else {
         std::cout << "no metadata, batch size will NOT be recieved :\n";
