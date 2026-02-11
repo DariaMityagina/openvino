@@ -274,7 +274,10 @@ void DynamicPipeline::push() {
         } else {
             auto& cmdLists = command_lists->_commandListHandles;
             auto cmdQueue = _graph->get_command_queue();
-            auto result = zeCommandQueueExecuteCommandLists(cmdQueue->handle(), cmdLists.size(), cmdLists.data(), fence);
+            auto result = zeCommandQueueExecuteCommandLists(cmdQueue->handle(),
+                                                            static_cast<uint32_t>(cmdLists.size()),
+                                                            cmdLists.data(),
+                                                            fence);
             if (result != ZE_RESULT_SUCCESS) {
                 OPENVINO_THROW("Failed to submit command lists");
             }
