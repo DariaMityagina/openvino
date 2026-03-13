@@ -646,7 +646,11 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
     std::shared_ptr<intel_npu::IGraph> graph;
 
     auto compileWithConfig = [&](auto&& modelToCompile, const auto& config) {
+<<<<<<< HEAD
         if (!localConfig.get<WEIGHTLESS_BLOB>()) {
+=======
+        if (!localConfig.get<WEIGHTLESS_BLOB>() && !localConfig.get<ENABLE_WEIGHTLESS>()) {
+>>>>>>> b1b9bcbb2d (Info -> warning: Override performance mode to THROUGHPUT for compilation - review)
             return compiler->compile(modelToCompile, config);
         } else {
             check_weightless_cache_attribute_occurrence(model);
@@ -654,21 +658,36 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
         }
     };
 
+    const bool performanceHintSetByUser = properties.find(ov::hint::performance_mode.name()) != properties.end();
+
     try {
         _logger.debug("performing compile");
 
         // Determine which model to use
         auto modelToCompile = successfullyDebatched ? batchedModel : model->clone();
 
-        if (successfullyDebatched && localConfig.get<PERFORMANCE_HINT>() == ov::hint::PerformanceMode::LATENCY) {
-            _logger.warning("Plugin batching is enabled. Overriding performance mode to THROUGHPUT for compilation.");
+        if (successfullyDebatched) {
+            if (!performanceHintSetByUser) {
+                _logger.info("Setting performance mode to THROUGHPUT for batched model compilation.");
 
-            auto modifiedConfig = localConfig;  // Copy only when needed
-            std::stringstream strStream;
-            strStream << ov::hint::PerformanceMode::THROUGHPUT;
-            modifiedConfig.update({{ov::hint::performance_mode.name(), strStream.str()}});
+                auto modifiedConfig = localConfig;  // Copy only when needed
+                std::stringstream strStream;
+                strStream << ov::hint::PerformanceMode::THROUGHPUT;
+                modifiedConfig.update({{ov::hint::performance_mode.name(), strStream.str()}});
 
-            graph = compileWithConfig(std::move(modelToCompile), modifiedConfig);
+                graph = compileWithConfig(std::move(modelToCompile), modifiedConfig);
+            } else if (localConfig.get<PERFORMANCE_HINT>() == ov::hint::PerformanceMode::LATENCY) {
+                _logger.warning("PERFORMANCE_HINT is explicitly set to LATENCY mode, but batch dimension (N) is "
+                                "detected in the model. The NPU Plugin will reshape the model to batch size 1 and "
+                                "process each batch slice separately.");
+                _logger.warning("For optimal performance with batched models, THROUGHPUT mode is highly recommended, "
+                                "as LATENCY mode prevents parallel batch processing.");
+                _logger.warning("If batch detection appears incorrect, verify that the input and output layouts are "
+                                "configured properly.");
+                graph = compileWithConfig(std::move(modelToCompile), localConfig);
+            } else {
+                graph = compileWithConfig(std::move(modelToCompile), localConfig);
+            }
         } else {
             graph = compileWithConfig(std::move(modelToCompile), localConfig);  // No copy
         }
