@@ -646,11 +646,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
     std::shared_ptr<intel_npu::IGraph> graph;
 
     auto compileWithConfig = [&](auto&& modelToCompile, const auto& config) {
-<<<<<<< HEAD
         if (!localConfig.get<WEIGHTLESS_BLOB>()) {
-=======
-        if (!localConfig.get<WEIGHTLESS_BLOB>() && !localConfig.get<ENABLE_WEIGHTLESS>()) {
->>>>>>> b1b9bcbb2d (Info -> warning: Override performance mode to THROUGHPUT for compilation - review)
             return compiler->compile(modelToCompile, config);
         } else {
             check_weightless_cache_attribute_occurrence(model);
